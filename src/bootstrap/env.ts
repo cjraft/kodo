@@ -7,6 +7,7 @@ export interface BootstrapCommonOptions {
   cwd?: string;
   storeRoot?: string;
   skillsRoot?: string;
+  themeAccent?: string;
   provider?: string;
   apiKey?: string;
   baseUrl?: string;
@@ -106,6 +107,7 @@ const ENV_VALIDATORS = {
   MODEL_CONTEXT_WINDOW: optional(optionalNumber),
   KODO_STORE_ROOT: optional(optionalString),
   KODO_SKILLS_ROOT: optional(optionalString),
+  KODO_THEME_ACCENT: optional(optionalString),
   KODO_MAX_TOOL_ITERATIONS: optional(optionalNumber),
   KODO_MAX_INPUT_TOKENS: optional(optionalNumber),
   KODO_MAX_MESSAGES: optional(optionalNumber),
@@ -153,6 +155,7 @@ const mapCommonBootstrapEnv = (
 ): BootstrapCommonOptions => ({
   storeRoot: raw.KODO_STORE_ROOT,
   skillsRoot: raw.KODO_SKILLS_ROOT,
+  themeAccent: raw.KODO_THEME_ACCENT,
   provider: raw.MODEL_PROVIDER,
   apiKey: raw.MODEL_API_KEY,
   baseUrl: raw.MODEL_BASE_URL,

@@ -9,6 +9,7 @@ import {
 import type { PiAiClientConfig } from "../core/llm/client.js";
 import type { ToolRegistryConfig } from "../core/tools/registry.js";
 import { resolveBashToolConfig } from "../core/tools/bash-tool.js";
+import { resolveUiTheme, type UiTheme } from "../ui/theme.js";
 import type { CliOptions } from "./cli-options.js";
 import type {
   BootstrapCommonOptions,
@@ -24,6 +25,7 @@ export interface AppConfig {
   cwd: string;
   storeRoot: string;
   skillsRoot: string;
+  ui: UiTheme;
   agent: {
     loop: AgentLoopConfig;
   };
@@ -88,6 +90,9 @@ export const loadAppConfig = (
       maxToolIterations: options.common.maxToolIterations
     }) satisfies AgentLoopConfig
   };
+  const ui = resolveUiTheme({
+    accentColor: options.common.themeAccent
+  });
 
   return {
     cwd,
@@ -95,6 +100,7 @@ export const loadAppConfig = (
     skillsRoot:
       options.common.skillsRoot?.trim() ||
       path.join(runtime.homeDir, ".kodo", "skills"),
+    ui,
     agent,
     context,
     tools,

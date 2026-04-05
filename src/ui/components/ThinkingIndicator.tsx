@@ -48,9 +48,13 @@ export function getRandomLoadingMessage(): string {
 
 interface ThinkingIndicatorProps {
   label?: string;
+  color?: string;
 }
 
-export function ThinkingIndicator({ label }: ThinkingIndicatorProps) {
+export function ThinkingIndicator({
+  label,
+  color = "magenta"
+}: ThinkingIndicatorProps) {
   const [message, setMessage] = useState(getRandomLoadingMessage);
 
   useEffect(() => {
@@ -64,10 +68,10 @@ export function ThinkingIndicator({ label }: ThinkingIndicatorProps) {
 
   return (
     <Box gap={1}>
-      <Text color="magenta">
+      <Text color={color}>
         <Spinner type="dots" />
       </Text>
-      <Text color="magenta">{label ?? message}</Text>
+      <Text color={color}>{label ?? message}</Text>
     </Box>
   );
 }

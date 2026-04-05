@@ -1,34 +1,86 @@
 import React, { useState } from "react";
-import { Box, Text, useApp } from "ink";
-import TextInput from "ink-text-input";
+import { Box, Text, useApp, useInput, useStdout } from "ink";
 import type { AgentService } from "../core/agent/types.js";
-import type { ToolCallRecord } from "../core/session/types.js";
 import { useAgent } from "./hooks/use-agent.js";
+import type { AppShellInfo } from "./shell-info.js";
+import { CommandComposer } from "./components/CommandComposer.js";
+import { ConversationFeed } from "./components/ConversationFeed.js";
+import { FocusHeader } from "./components/FocusHeader.js";
+import { OpsDrawer } from "./components/OpsDrawer.js";
+import { Panel } from "./components/Panel.js";
 import { ThinkingIndicator } from "./components/ThinkingIndicator.js";
-
-const toolCallToText = (toolCall: ToolCallRecord) =>
-  `${toolCall.toolName} ${toolCall.isError ? "failed" : "completed"}`;
+import { getPhaseLabel } from "./launch-screen.js";
+import { useTheme } from "./theme-context.js";
 
 interface AppProps {
   agent: AgentService;
   sessionId?: string;
+  shell: AppShellInfo;
 }
 
-export function App({ agent, sessionId }: AppProps) {
+export function App({ agent, sessionId, shell }: AppProps) {
   const { exit } = useApp();
+  const { stdout } = useStdout();
+  const theme = useTheme();
+  const stdoutWidth = stdout.columns ?? 120;
   const [input, setInput] = useState("");
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const {
     ready,
     busy,
     runPhase,
     activeToolName,
-    status,
     session,
     messages,
     toolCalls,
     resume,
     run
   } = useAgent(agent, sessionId);
+  const compactLayout = stdoutWidth < 118;
+  const phaseLabel = getPhaseLabel(busy, runPhase);
+  const activePhaseId = busy ? runPhase : "idle";
+  const recentToolCalls = toolCalls.slice(-4).reverse();
+  const busyLabel =
+    runPhase === "tool-running"
+      ? `Running ${activeToolName ?? "tool"}...`
+      : runPhase === "streaming"
+        ? "Streaming response..."
+        : runPhase === "thinking"
+          ? "Thinking..."
+          : "Initializing...";
+
+  useInput((character, key) => {
+    if (!key.escape) {
+      if (busy || !ready) {
+        return;
+      }
+
+      if (key.return) {
+        void handleSubmit(input);
+        return;
+      }
+
+      if (key.backspace || key.delete) {
+        setInput((current) => current.slice(0, -1));
+        return;
+      }
+
+      if (key.ctrl && character.toLowerCase() === "c") {
+        exit();
+        return;
+      }
+
+      if (!key.ctrl && !key.meta && character) {
+        setInput((current) => current + character);
+      }
+
+      return;
+    }
+
+    setDetailsOpen(false);
+    setHelpOpen(false);
+  });
 
   const handleSubmit = async (value: string) => {
     const trimmed = value.trim();
@@ -39,6 +91,25 @@ export function App({ agent, sessionId }: AppProps) {
 
     if (trimmed === "/exit") {
       exit();
+      return;
+    }
+
+    if (trimmed === "/details") {
+      setInput("");
+      setDetailsOpen((current) => !current);
+      return;
+    }
+
+    if (trimmed === "/help") {
+      setInput("");
+      setHelpOpen((current) => !current);
+      return;
+    }
+
+    if (trimmed === "/focus") {
+      setInput("");
+      setDetailsOpen(false);
+      setHelpOpen(false);
       return;
     }
 
@@ -53,75 +124,91 @@ export function App({ agent, sessionId }: AppProps) {
   };
 
   return (
-    <Box flexDirection="column" padding={1}>
-      <Text bold>Kodo</Text>
-      <Text color="gray">
-        {session
-          ? `cwd=${session.meta.cwd} provider=${session.meta.provider}`
-          : "loading..."}
-      </Text>
-      <Text
-        color={
-          status.startsWith("Run failed:") || status.startsWith("Resume failed:")
-            ? "red"
-            : "cyan"
-        }
-      >
-        {status}
-      </Text>
-      <Box flexDirection="column" marginTop={1}>
-        {messages.slice(-12).map((message) => (
-          <Box key={message.id} marginBottom={1}>
-            <Text
-              color={
-                message.role === "user"
-                  ? "green"
-                  : message.role === "assistant"
-                    ? "yellow"
-                    : "white"
-              }
-            >
-              {message.role}
-              {">"} {message.text}
-            </Text>
-          </Box>
-        ))}
-      </Box>
-      <Box flexDirection="column" marginTop={1}>
-        <Text bold>Recent Tools</Text>
-        {toolCalls.length === 0 ? (
-          <Text color="gray">No tool calls yet</Text>
-        ) : (
-          toolCalls.slice(-5).map((toolCall) => (
-            <Text key={toolCall.id} color="magenta">
-              {toolCallToText(toolCall)}
-            </Text>
-          ))
-        )}
-      </Box>
-      <Box marginTop={1}>
-        <Text color="green">{"> "}</Text>
-        {busy ? (
-          runPhase === "thinking" ? (
-            <ThinkingIndicator />
-          ) : runPhase === "tool-running" ? (
-            <ThinkingIndicator label={`Running ${activeToolName ?? "tool"}...`} />
-          ) : (
-            <Text color="gray">Streaming response...</Text>
-          )
-        ) : ready ? (
-          <TextInput
-            value={input}
-            onChange={setInput}
-            onSubmit={handleSubmit}
+    <Box flexDirection="column" paddingX={1} paddingY={0}>
+      <FocusHeader
+        compactLayout={stdoutWidth < 88}
+        shell={shell}
+      />
+
+      {busy ? (
+        <Box marginTop={1} paddingX={1}>
+          <Text color={theme.accentColor}>
+            live signal :: {phaseLabel}
+            {runPhase === "tool-running"
+              ? ` -> ${activeToolName ?? "tool"}`
+              : runPhase === "streaming"
+                ? " -> response stream"
+                : " -> model loop"}
+          </Text>
+        </Box>
+      ) : null}
+
+      {detailsOpen ? (
+        <Box marginTop={1}>
+          <OpsDrawer
+            compactLayout={compactLayout}
+            busy={busy}
+            phaseLabel={phaseLabel}
+            activePhaseId={activePhaseId}
+            activeToolName={activeToolName}
+            messagesCount={messages.length}
+            toolCallsCount={toolCalls.length}
+            session={session}
+            recentToolCalls={recentToolCalls}
           />
-        ) : (
-          <Text color="gray">Initializing...</Text>
-        )}
-      </Box>
-      <Box marginTop={1}>
-        <Text color="gray">Use /resume [session-id] or /exit</Text>
-      </Box>
+        </Box>
+      ) : null}
+
+      {helpOpen ? (
+        <Box marginTop={1}>
+          <Panel
+            title="Command Reference"
+            eyebrow="LOW-FRICTION HELP"
+          >
+            <Text>
+              <Text color={theme.accentColor}>/details</Text> toggle the ops drawer without
+              leaving the prompt flow
+            </Text>
+            <Text>
+              <Text color={theme.accentColor}>/help</Text> open or close this compact
+              command reference
+            </Text>
+            <Text>
+              <Text color={theme.accentColor}>/focus</Text> close drawers and return
+              to the main session stream
+            </Text>
+            <Text color={theme.mutedColor}>
+              Press <Text color={theme.accentColor}>Esc</Text> to close drawers
+              instantly.
+            </Text>
+          </Panel>
+        </Box>
+      ) : null}
+
+      <ConversationFeed
+        width={stdoutWidth}
+        compactLayout={compactLayout}
+        messages={messages}
+        toolCalls={toolCalls}
+      />
+
+      <CommandComposer
+        width={stdoutWidth}
+        ready={ready}
+        busy={busy}
+        input={input}
+        busyLabel={busyLabel}
+      />
+
+      {busy ? (
+        <Box marginTop={1}>
+          {runPhase === "thinking" || runPhase === "tool-running" ? (
+            <ThinkingIndicator label={busyLabel} color={theme.accentColor} />
+          ) : (
+            <Text color={theme.mutedColor}>Streaming response packets...</Text>
+          )}
+        </Box>
+      ) : null}
     </Box>
   );
 }

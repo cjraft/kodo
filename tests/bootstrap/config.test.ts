@@ -66,7 +66,26 @@ describe("loadAppConfig", () => {
     expect(config.cwd).toBe("/workspace/project");
     expect(config.storeRoot).toBe("/workspace/project/.kodo");
     expect(config.skillsRoot).toBe("/Users/tester/.kodo/skills");
+    expect(config.ui.accentColor).toBe("#d6b3ff");
     expect(config.llm.providerId).toBe("openai");
     expect(config.context.maxInputTokens).toBe(111616);
+  });
+
+  it("accepts a configured ui theme accent", () => {
+    const config = loadAppConfig(
+      createOptions({
+        common: {
+          provider: "openai",
+          themeAccent: "#c8a2ff"
+        },
+        providers: {
+          openai: {
+            apiKey: "openai-key"
+          }
+        }
+      })
+    );
+
+    expect(config.ui.accentColor).toBe("#c8a2ff");
   });
 });

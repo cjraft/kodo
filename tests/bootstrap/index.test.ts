@@ -24,7 +24,8 @@ describe("resolveAppConfig", () => {
         "MODEL_PROVIDER=kimi",
         "MODEL_API_KEY=sk-kimi-from-dotenv",
         "MODEL_BASE_URL=https://api.kimi.com/coding/",
-        "MODEL_NAME=k2p5"
+        "MODEL_NAME=k2p5",
+        'KODO_THEME_ACCENT="#c9a7ff"'
       ].join("\n"),
       "utf8"
     );
@@ -45,5 +46,6 @@ describe("resolveAppConfig", () => {
       baseUrl: "https://api.kimi.com/coding/",
       model: "k2p5"
     });
+    expect(config.ui.accentColor).toBe("#c9a7ff");
   });
 });
