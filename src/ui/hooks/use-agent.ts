@@ -68,6 +68,7 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
   const [streamingText, setStreamingText] = useState("");
   const mountedRef = useRef(true);
   const unsubscribeRef = useRef<() => void>(() => {});
+  const streamingMessageCreatedAtRef = useRef<string | null>(null);
 
   /**
    * Rebinds the hook to a specific session and resets transient run state.
@@ -93,18 +94,26 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
       }
 
       if (event.type === "run-start") {
+        streamingMessageCreatedAtRef.current = null;
+        setStreamingText("");
         refreshSessionView();
       }
 
       if (event.type === "text-delta") {
+        if (!streamingMessageCreatedAtRef.current) {
+          streamingMessageCreatedAtRef.current = new Date().toISOString();
+        }
         setRunPhase("streaming");
         setStreamingText((current) => current + event.text);
       }
 
       if (event.type === "tool-start") {
+        streamingMessageCreatedAtRef.current = null;
+        setStreamingText("");
         setRunPhase("tool-running");
         setActiveToolName(event.toolName);
         setStatus(`Running ${event.toolName}...`);
+        refreshSessionView();
       }
 
       if (event.type === "tool-end") {
@@ -123,6 +132,7 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
         setBusy(false);
         setRunPhase("idle");
         setActiveToolName(null);
+        streamingMessageCreatedAtRef.current = null;
         setStreamingText("");
         refreshSessionView();
       }
@@ -131,6 +141,8 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
         setBusy(false);
         setRunPhase("idle");
         setActiveToolName(null);
+        streamingMessageCreatedAtRef.current = null;
+        setStreamingText("");
         setStatus(`Run failed: ${event.message}`);
       }
     };
@@ -140,6 +152,8 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
     setBusy(false);
     setRunPhase("idle");
     setActiveToolName(null);
+    streamingMessageCreatedAtRef.current = null;
+    setStreamingText("");
 
     const snapshot = nextSession.read();
     if (snapshot && mountedRef.current) {
@@ -198,7 +212,8 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
             id: "streaming-assistant",
             role: "assistant" as const,
             text: streamingText,
-            createdAt: new Date().toISOString()
+            createdAt:
+              streamingMessageCreatedAtRef.current ?? new Date().toISOString()
           }
         ]
       : messages;

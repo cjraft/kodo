@@ -180,6 +180,10 @@ export type ConversationEntry =
       toolCall: ToolCallRecord;
     };
 
+const USER_ENTRY_ROWS = 4;
+const ASSISTANT_ENTRY_ROWS = 3;
+const TOOL_ENTRY_ROWS = 5;
+
 const hasVisibleMessageBody = (message: Message) => {
   if (message.role !== "assistant") {
     return true;
@@ -226,3 +230,49 @@ export const buildConversationEntries = (
       toolCall
     }))
   ].sort(compareConversationEntries);
+
+const estimateConversationEntryRows = (entry: ConversationEntry) => {
+  if (entry.kind === "tool-call") {
+    return TOOL_ENTRY_ROWS;
+  }
+
+  if (entry.message.role === "user") {
+    return USER_ENTRY_ROWS;
+  }
+
+  if (entry.message.role === "tool") {
+    return TOOL_ENTRY_ROWS;
+  }
+
+  return ASSISTANT_ENTRY_ROWS;
+};
+
+/**
+ * Selects the newest suffix of the rendered transcript that fits within a rough
+ * terminal row budget, keeping the feed stable when tool cards are taller.
+ */
+export const selectVisibleConversationEntries = (
+  entries: ConversationEntry[],
+  maxRows: number
+) => {
+  if (maxRows <= 0) {
+    return [];
+  }
+
+  const selected: ConversationEntry[] = [];
+  let usedRows = 0;
+
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+    const entryRows = estimateConversationEntryRows(entry);
+
+    if (selected.length > 0 && usedRows + entryRows > maxRows) {
+      break;
+    }
+
+    selected.unshift(entry);
+    usedRows += entryRows;
+  }
+
+  return selected;
+};

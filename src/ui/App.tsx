@@ -23,6 +23,7 @@ export function App({ agent, sessionId, shell }: AppProps) {
   const { stdout } = useStdout();
   const theme = useTheme();
   const stdoutWidth = stdout.columns ?? 120;
+  const stdoutHeight = stdout.rows ?? 36;
   const [input, setInput] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -41,6 +42,12 @@ export function App({ agent, sessionId, shell }: AppProps) {
   const phaseLabel = getPhaseLabel(busy, runPhase);
   const activePhaseId = busy ? runPhase : "idle";
   const recentToolCalls = toolCalls.slice(-4).reverse();
+  const reservedRows =
+    13 +
+    (busy ? 4 : 0) +
+    (detailsOpen ? 10 : 0) +
+    (helpOpen ? 8 : 0);
+  const conversationRows = Math.max(6, stdoutHeight - reservedRows);
   const busyLabel =
     runPhase === "tool-running"
       ? `Running ${activeToolName ?? "tool"}...`
@@ -187,6 +194,7 @@ export function App({ agent, sessionId, shell }: AppProps) {
 
       <ConversationFeed
         width={stdoutWidth}
+        maxRows={conversationRows}
         compactLayout={compactLayout}
         messages={messages}
         toolCalls={toolCalls}

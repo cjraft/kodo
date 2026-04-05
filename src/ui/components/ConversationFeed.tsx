@@ -5,7 +5,8 @@ import {
   buildConversationEntries,
   createMessageSnippet,
   formatClock,
-  formatValuePreview
+  formatValuePreview,
+  selectVisibleConversationEntries
 } from "../launch-screen.js";
 import type { UiTheme } from "../theme.js";
 import { useTheme } from "../theme-context.js";
@@ -13,6 +14,7 @@ import { SurfaceBar } from "./SurfaceBar.js";
 
 interface ConversationFeedProps {
   width: number;
+  maxRows: number;
   compactLayout: boolean;
   messages: Message[];
   toolCalls: ToolCallRecord[];
@@ -27,12 +29,16 @@ const getAssistantMarkerColor = (message: Message, theme: UiTheme) =>
  */
 export function ConversationFeed({
   width,
+  maxRows,
   compactLayout,
   messages,
   toolCalls
 }: ConversationFeedProps) {
   const theme = useTheme();
-  const entries = buildConversationEntries(messages, toolCalls).slice(-14);
+  const entries = selectVisibleConversationEntries(
+    buildConversationEntries(messages, toolCalls),
+    maxRows
+  );
   const toolCallById = new Map(toolCalls.map((toolCall) => [toolCall.id, toolCall]));
 
   if (entries.length === 0) {

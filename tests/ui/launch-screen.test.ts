@@ -8,6 +8,7 @@ import {
   formatValuePreview,
   getPhaseLabel,
   getStatusTone,
+  selectVisibleConversationEntries,
   shortenPath
 } from "../../src/ui/launch-screen.js";
 
@@ -120,6 +121,46 @@ describe("launch-screen helpers", () => {
       "message",
       "tool-call",
       "message"
+    ]);
+  });
+
+  it("keeps only the newest entries that fit the row budget", () => {
+    const entries = buildConversationEntries(
+      [
+        {
+          id: "m1",
+          role: "user",
+          text: "open readme",
+          createdAt: "2026-04-05T12:00:00.000Z"
+        },
+        {
+          id: "m2",
+          role: "tool",
+          text: "README content",
+          toolName: "file_read",
+          toolCallId: "t1",
+          createdAt: "2026-04-05T12:00:02.000Z"
+        },
+        {
+          id: "m3",
+          role: "assistant",
+          text: "Here is the summary.",
+          createdAt: "2026-04-05T12:00:03.000Z"
+        }
+      ],
+      [
+        {
+          id: "t1",
+          toolName: "file_read",
+          input: { path: "README.md" },
+          createdAt: "2026-04-05T12:00:01.000Z"
+        }
+      ]
+    );
+
+    expect(selectVisibleConversationEntries(entries, 8).map((entry) => entry.id)).toEqual([
+      "message:m2",
+      "message:m3"
     ]);
   });
 });
