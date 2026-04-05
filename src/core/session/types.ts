@@ -25,6 +25,7 @@ export interface Message {
   createdAt: string;
   toolName?: string;
   toolCallId?: string;
+  toolError?: boolean;
   toolCalls?: AssistantToolCall[];
 }
 

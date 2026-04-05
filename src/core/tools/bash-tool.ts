@@ -12,6 +12,10 @@ export interface BashToolConfig {
 
 export type BashToolOptions = Partial<BashToolConfig>;
 
+export interface BashToolInput {
+  command: string;
+}
+
 /**
  * Default shell execution policy for local commands.
  */
@@ -44,29 +48,74 @@ const DANGEROUS_PATTERNS = [
   /\bwget\b.+\|\s*(sh|bash)\b/
 ];
 
+const ANSI_PATTERN =
+  /\u001B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\u0007]*(?:\u0007|\u001B\\))/g;
+const INVISIBLE_CONTROL_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+
+const normalizeCommand = (input: string | BashToolInput) => {
+  if (typeof input === "string" || input instanceof String) {
+    return String(input).trim();
+  }
+
+  if (
+    input &&
+    typeof input === "object" &&
+    "command" in input &&
+    typeof input.command === "string"
+  ) {
+    return input.command.trim();
+  }
+
+  return "";
+};
+
+const normalizeShellOutput = (value: string) =>
+  value.replace(ANSI_PATTERN, "").replace(INVISIBLE_CONTROL_PATTERN, "");
+
+const collectVisibleOutput = (stdout: string, stderr: string) =>
+  [stdout, stderr]
+    .map(normalizeShellOutput)
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join("\n");
+
 /**
- * Keeps the tail of long command output, which is usually the part most useful
- * for debugging failures.
+ * Keeps a readable head/tail preview when output is too large to store fully.
  */
 const truncateOutput = (value: string, maxOutputChars: number) => {
   if (value.length <= maxOutputChars) {
     return value;
   }
 
-  const tailLength = Math.max(256, Math.floor(maxOutputChars * 0.6));
-  return `[output truncated]\n${value.slice(-tailLength)}`;
+  const prefix = `[output truncated: ${value.length} chars total]\n`;
+  const separator = "\n...\n";
+  const previewBudget = Math.max(
+    32,
+    maxOutputChars - prefix.length - separator.length
+  );
+  const headLength = Math.max(16, Math.floor(previewBudget * 0.45));
+  const tailLength = Math.max(16, previewBudget - headLength);
+
+  return `${prefix}${value.slice(0, headLength)}${separator}${value.slice(-tailLength)}`;
 };
 
 /**
  * Executes shell commands inside the current workspace with bounded output and time.
  */
-export class BashTool implements Tool<string> {
+export class BashTool implements Tool<string | BashToolInput> {
   private readonly config: BashToolConfig;
   name = "bash";
   description = "Execute a shell command in the current workspace.";
   inputSchema = {
-    type: "string",
-    description: "The shell command to execute."
+    type: "object",
+    properties: {
+      command: {
+        type: "string",
+        description: "The shell command to execute."
+      }
+    },
+    required: ["command"],
+    additionalProperties: false
   };
 
   constructor(config: BashToolOptions = {}) {
@@ -76,7 +125,19 @@ export class BashTool implements Tool<string> {
   /**
    * Runs the command in zsh and returns normalized stdout/stderr output.
    */
-  async execute(command: string, context: ToolContext): Promise<ToolResult> {
+  async execute(
+    input: string | BashToolInput,
+    context: ToolContext
+  ): Promise<ToolResult> {
+    const command = normalizeCommand(input);
+
+    if (!command) {
+      return {
+        success: false,
+        text: "bash requires a valid command."
+      };
+    }
+
     if (!this.config.allowDangerousCommands) {
       const blocked = DANGEROUS_PATTERNS.some((pattern) =>
         pattern.test(command)
@@ -121,8 +182,13 @@ export class BashTool implements Tool<string> {
         clearTimeout(timeout);
         clearTimeout(forceKill);
         const success = code === 0;
+        const combinedOutput = collectVisibleOutput(stdout, stderr);
         const text = truncateOutput(
-          [stdout.trim(), stderr.trim()].filter(Boolean).join("\n"),
+          timedOut
+            ? [`[command timed out after ${this.config.timeoutMs}ms]`, combinedOutput]
+                .filter(Boolean)
+                .join("\n")
+            : combinedOutput,
           this.config.maxOutputChars
         );
         resolve({

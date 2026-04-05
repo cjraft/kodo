@@ -64,7 +64,10 @@ const buildSystemPrompt = (cwd: string) =>
   [
     "You are Kodo, a local coding agent running inside a terminal.",
     `Current working directory: ${cwd}`,
-    "Use tools when they are necessary and answer directly when they are not."
+    "Use tools when they are necessary and answer directly when they are not.",
+    "Prefer file_read when the user asks to inspect or read a known workspace file.",
+    "Use bash for shell tasks, not as a substitute for opening text files.",
+    "Never infer that a file or directory is missing from a failed or timed-out tool result."
   ].join("\n");
 
 const toPiAiTool = (tool: ToolDefinition): PiAiTool => ({
@@ -136,7 +139,7 @@ const toPiAiToolResultMessage = (message: Message): ToolResultMessage => ({
       text: message.text
     }
   ],
-  isError: false,
+  isError: message.toolError ?? false,
   timestamp: Date.parse(message.createdAt) || Date.now()
 });
 

@@ -253,6 +253,7 @@ export class AgentRunExecutor {
         text: toolResult.text,
         toolName: toolCall.toolName,
         toolCallId: toolCall.id,
+        toolError: !toolResult.success,
         createdAt: new Date().toISOString()
       },
       sessionId
