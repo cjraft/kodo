@@ -1,24 +1,16 @@
 import { createId } from "../../lib/id.js";
-import { SessionStore } from "../session/store.js";
-import type {
-  Message,
-  SessionMeta,
-  SessionSnapshot,
-  ToolCallRecord
-} from "../session/types.js";
-import type { AgentSessionView } from "./types.js";
+import { SessionStore } from "./store.js";
+import type { Message, SessionMeta, SessionSnapshot, ToolCallRecord } from "./types.js";
+import type { AgentSessionView } from "../agent/types.js";
 
 /**
  * Restores compatibility details that older stored sessions may not contain,
  * while keeping persistence formats independent from current runtime defaults.
  */
-const normalizeSession = (
-  session: SessionSnapshot,
-  providerName: string
-): SessionSnapshot => ({
+const normalizeSession = (session: SessionSnapshot, providerName: string): SessionSnapshot => ({
   meta: {
     ...session.meta,
-    provider: providerName
+    provider: providerName,
   },
   messages: session.messages.map((message) => ({
     ...message,
@@ -26,9 +18,9 @@ const normalizeSession = (
       message.reasoning ||
       (message.role === "assistant" && (message.toolCalls?.length ?? 0) > 0
         ? "Tool planning completed."
-        : undefined)
+        : undefined),
   })),
-  toolCalls: session.toolCalls.map((toolCall) => ({ ...toolCall }))
+  toolCalls: session.toolCalls.map((toolCall) => ({ ...toolCall })),
 });
 
 /**
@@ -37,7 +29,7 @@ const normalizeSession = (
 const cloneSession = (session: SessionSnapshot): AgentSessionView => ({
   meta: { ...session.meta },
   messages: session.messages.map((message) => ({ ...message })),
-  toolCalls: session.toolCalls.map((toolCall) => ({ ...toolCall }))
+  toolCalls: session.toolCalls.map((toolCall) => ({ ...toolCall })),
 });
 
 /**
@@ -49,7 +41,7 @@ export class AgentSessionState {
   constructor(
     private readonly store: SessionStore,
     private readonly cwd: string,
-    private readonly providerName: string
+    private readonly providerName: string,
   ) {}
 
   /**
@@ -62,7 +54,7 @@ export class AgentSessionState {
       cwd: this.cwd,
       createdAt: now,
       updatedAt: now,
-      provider: this.providerName
+      provider: this.providerName,
     };
 
     await this.store.create(meta);

@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { useTheme } from "../theme-context.js";
+import { useTheme } from "../theme/context.js";
 
 interface PanelProps {
   title: string;
@@ -10,14 +10,9 @@ interface PanelProps {
 }
 
 /**
- * Shared launch-screen panel shell that keeps the TUI layout visually cohesive.
+ * Shared panel shell that keeps the TUI layout visually cohesive.
  */
-export function Panel({
-  title,
-  accentColor,
-  eyebrow,
-  children
-}: PanelProps) {
+export function Panel({ title, accentColor, eyebrow, children }: PanelProps) {
   const theme = useTheme();
   const resolvedAccentColor = accentColor ?? theme.accentColor;
 

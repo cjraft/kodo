@@ -1,7 +1,7 @@
 import type { PiAiClientConfig } from "../core/llm/client.js";
 import {
   normalizeReasoningEffort,
-  resolveLlmProviderProfile
+  resolveLlmProviderProfile,
 } from "../core/llm/provider-defaults.js";
 import type { ProviderLlmOptions } from "./env.js";
 import type { BootstrapOptions } from "./config.js";
@@ -11,10 +11,8 @@ const normalizeString = (value: string | undefined) => {
   return normalized ? normalized : undefined;
 };
 
-const getProviderOptions = (
-  options: BootstrapOptions,
-  providerId: string
-): ProviderLlmOptions => options.providers[providerId] ?? {};
+const getProviderOptions = (options: BootstrapOptions, providerId: string): ProviderLlmOptions =>
+  options.providers[providerId] ?? {};
 
 const hasProviderSignal = (options: ProviderLlmOptions | undefined) =>
   Boolean(
@@ -23,7 +21,7 @@ const hasProviderSignal = (options: ProviderLlmOptions | undefined) =>
     options?.model ||
     options?.reasoningEffort ||
     options?.maxOutputTokens ||
-    options?.contextWindow
+    options?.contextWindow,
   );
 
 const hasGenericLlmOverrides = (options: BootstrapOptions) =>
@@ -33,7 +31,7 @@ const hasGenericLlmOverrides = (options: BootstrapOptions) =>
     options.common.model ||
     options.common.reasoningEffort ||
     options.common.maxOutputTokens ||
-    options.common.contextWindow
+    options.common.contextWindow,
   );
 
 /**
@@ -47,8 +45,8 @@ const resolveProviderId = (options: BootstrapOptions) => {
     return resolveLlmProviderProfile(explicitProvider).canonicalId;
   }
 
-  const inferredProviderIds = Object.keys(options.providers).filter(
-    (providerId) => hasProviderSignal(getProviderOptions(options, providerId))
+  const inferredProviderIds = Object.keys(options.providers).filter((providerId) =>
+    hasProviderSignal(getProviderOptions(options, providerId)),
   );
 
   if (inferredProviderIds.length === 1) {
@@ -57,19 +55,15 @@ const resolveProviderId = (options: BootstrapOptions) => {
 
   if (inferredProviderIds.length > 1) {
     throw new Error(
-      "Multiple LLM providers are configured. Set MODEL_PROVIDER or --provider explicitly."
+      "Multiple LLM providers are configured. Set MODEL_PROVIDER or --provider explicitly.",
     );
   }
 
   if (hasGenericLlmOverrides(options)) {
-    throw new Error(
-      "MODEL_PROVIDER or --provider is required when using generic model options."
-    );
+    throw new Error("MODEL_PROVIDER or --provider is required when using generic model options.");
   }
 
-  throw new Error(
-    "No LLM provider configured. Set MODEL_PROVIDER and MODEL_API_KEY."
-  );
+  throw new Error("No LLM provider configured. Set MODEL_PROVIDER and MODEL_API_KEY.");
 };
 
 /**
@@ -78,7 +72,7 @@ const resolveProviderId = (options: BootstrapOptions) => {
 const requireField = (
   providerId: string,
   fieldName: "apiKey" | "baseUrl" | "model",
-  value: string | undefined
+  value: string | undefined,
 ) => {
   if (!value) {
     throw new Error(`Missing ${fieldName} for provider ${providerId}.`);
@@ -98,35 +92,28 @@ export const buildLlmConfig = (options: BootstrapOptions): PiAiClientConfig => {
 
   const model =
     profile.normalizeModel?.(
-      normalizeString(
-        options.common.model ?? providerOptions.model ?? profile.defaults.model
-      )
-    ) ??
-    normalizeString(
-      options.common.model ?? providerOptions.model ?? profile.defaults.model
-    );
+      normalizeString(options.common.model ?? providerOptions.model ?? profile.defaults.model),
+    ) ?? normalizeString(options.common.model ?? providerOptions.model ?? profile.defaults.model);
 
   return {
     providerId,
     apiKey: requireField(
       providerId,
       "apiKey",
-      normalizeString(options.common.apiKey ?? providerOptions.apiKey)
+      normalizeString(options.common.apiKey ?? providerOptions.apiKey),
     ),
     baseUrl: requireField(
       providerId,
       "baseUrl",
       normalizeString(
-        options.common.baseUrl ??
-          providerOptions.baseUrl ??
-          profile.defaults.baseUrl
-      )
+        options.common.baseUrl ?? providerOptions.baseUrl ?? profile.defaults.baseUrl,
+      ),
     ),
     model: requireField(providerId, "model", model),
     reasoning: normalizeReasoningEffort(
       options.common.reasoningEffort ??
         providerOptions.reasoningEffort ??
-        profile.defaults.reasoning
+        profile.defaults.reasoning,
     ),
     maxOutputTokens:
       options.common.maxOutputTokens ??
@@ -135,6 +122,6 @@ export const buildLlmConfig = (options: BootstrapOptions): PiAiClientConfig => {
     contextWindow:
       options.common.contextWindow ??
       providerOptions.contextWindow ??
-      profile.defaults.contextWindow
+      profile.defaults.contextWindow,
   };
 };

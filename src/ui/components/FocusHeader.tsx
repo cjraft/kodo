@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { AppShellInfo } from "../shell-info.js";
-import { useTheme } from "../theme-context.js";
+import type { AppShellInfo } from "../app/shell.js";
+import { useTheme } from "../theme/context.js";
 
 interface FocusHeaderProps {
   compactLayout: boolean;

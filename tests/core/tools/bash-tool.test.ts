@@ -6,11 +6,11 @@ describe("BashTool", () => {
     const tool = new BashTool({
       timeoutMs: 1_000,
       maxOutputChars: 2_000,
-      allowDangerousCommands: false
+      allowDangerousCommands: false,
     });
 
     const result = await tool.execute("rm -rf /", {
-      cwd: process.cwd()
+      cwd: process.cwd(),
     });
 
     expect(result.success).toBe(false);
@@ -21,14 +21,14 @@ describe("BashTool", () => {
     const tool = new BashTool({
       timeoutMs: 1_000,
       maxOutputChars: 2_000,
-      allowDangerousCommands: false
+      allowDangerousCommands: false,
     });
 
     const result = await tool.execute(
       { command: "printf 'README.md'" },
       {
-        cwd: process.cwd()
-      }
+        cwd: process.cwd(),
+      },
     );
 
     expect(result.success).toBe(true);
@@ -39,14 +39,14 @@ describe("BashTool", () => {
     const tool = new BashTool({
       timeoutMs: 50,
       maxOutputChars: 256,
-      allowDangerousCommands: false
+      allowDangerousCommands: false,
     });
 
     const result = await tool.execute(
       { command: "sleep 1" },
       {
-        cwd: process.cwd()
-      }
+        cwd: process.cwd(),
+      },
     );
 
     expect(result.success).toBe(false);

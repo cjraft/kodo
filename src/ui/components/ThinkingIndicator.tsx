@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
+import type { LaunchRunPhase } from "../app/shell.js";
+import { getBusyLabel } from "../app/status.js";
+import { useTheme } from "../theme/context.js";
 
 const whimsicalVerbs = [
   "Booting",
@@ -37,41 +40,57 @@ const whimsicalVerbs = [
   "Recalibrating",
   "Synthesizing",
   "Vibing",
-  "Wrangling"
+  "Wrangling",
 ];
 
 export function getRandomLoadingMessage(): string {
-  const verb =
-    whimsicalVerbs[Math.floor(Math.random() * whimsicalVerbs.length)];
+  const verb = whimsicalVerbs[Math.floor(Math.random() * whimsicalVerbs.length)];
   return `${verb}...`;
 }
 
 interface ThinkingIndicatorProps {
-  label?: string;
-  color?: string;
+  busy: boolean;
+  runPhase: LaunchRunPhase;
+  activeToolName: string | null;
 }
 
-export function ThinkingIndicator({
-  label,
-  color = "magenta"
-}: ThinkingIndicatorProps) {
+export function ThinkingIndicator({ busy, runPhase, activeToolName }: ThinkingIndicatorProps) {
+  const theme = useTheme();
   const [message, setMessage] = useState(getRandomLoadingMessage);
+  const busyLabel = getBusyLabel(runPhase, activeToolName);
+  const shouldAnimate = busy && (runPhase === "thinking" || runPhase === "tool-running");
 
   useEffect(() => {
-    if (label) {
+    if (runPhase === "tool-running" || !shouldAnimate) {
       return;
     }
 
     const id = setInterval(() => setMessage(getRandomLoadingMessage()), 1200);
     return () => clearInterval(id);
-  }, [label]);
+  }, [runPhase, shouldAnimate]);
+
+  if (!busy) {
+    return null;
+  }
+
+  if (runPhase === "streaming") {
+    return (
+      <Box marginTop={1}>
+        <Text color={theme.mutedColor}>Streaming response packets...</Text>
+      </Box>
+    );
+  }
+
+  if (!shouldAnimate) {
+    return null;
+  }
 
   return (
-    <Box gap={1}>
-      <Text color={color}>
+    <Box marginTop={1} gap={1}>
+      <Text color={theme.accentColor}>
         <Spinner type="dots" />
       </Text>
-      <Text color={color}>{label ?? message}</Text>
+      <Text color={theme.accentColor}>{runPhase === "tool-running" ? busyLabel : message}</Text>
     </Box>
   );
 }

@@ -1,8 +1,5 @@
 import type { PiAiClientConfig } from "../llm/client.js";
-import {
-  DEFAULT_CONTEXT_WINDOW,
-  DEFAULT_MAX_OUTPUT_TOKENS
-} from "../llm/client.js";
+import { DEFAULT_CONTEXT_WINDOW, DEFAULT_MAX_OUTPUT_TOKENS } from "../llm/client.js";
 import type { Message } from "../session/types.js";
 
 /**
@@ -26,7 +23,7 @@ export interface ContextBuilderOptions {
  */
 export const DEFAULT_CONTEXT_BUILDER_CONFIG: ContextBuilderConfig = {
   maxInputTokens: 4_096,
-  maxMessages: 64
+  maxMessages: 64,
 };
 
 /**
@@ -34,12 +31,12 @@ export const DEFAULT_CONTEXT_BUILDER_CONFIG: ContextBuilderConfig = {
  * for the model's output tokens.
  */
 export const deriveDefaultContextInputTokens = (
-  llm: Pick<PiAiClientConfig, "contextWindow" | "maxOutputTokens">
+  llm: Pick<PiAiClientConfig, "contextWindow" | "maxOutputTokens">,
 ) =>
   Math.max(
     DEFAULT_CONTEXT_BUILDER_CONFIG.maxInputTokens,
     (llm.contextWindow ?? DEFAULT_CONTEXT_WINDOW) -
-      (llm.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS)
+      (llm.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS),
   );
 
 /**
@@ -47,11 +44,10 @@ export const deriveDefaultContextInputTokens = (
  */
 export const resolveContextBuilderConfig = (
   options: ContextBuilderOptions = {},
-  llm: Pick<PiAiClientConfig, "contextWindow" | "maxOutputTokens">
+  llm: Pick<PiAiClientConfig, "contextWindow" | "maxOutputTokens">,
 ): ContextBuilderConfig => ({
-  maxInputTokens:
-    options.maxInputTokens ?? deriveDefaultContextInputTokens(llm),
-  maxMessages: options.maxMessages ?? DEFAULT_CONTEXT_BUILDER_CONFIG.maxMessages
+  maxInputTokens: options.maxInputTokens ?? deriveDefaultContextInputTokens(llm),
+  maxMessages: options.maxMessages ?? DEFAULT_CONTEXT_BUILDER_CONFIG.maxMessages,
 });
 
 /**
@@ -69,12 +65,7 @@ const estimateMessageTokens = (message: Message) => {
   const serializedToolCalls = (message.toolCalls ?? [])
     .map((toolCall) => `${toolCall.toolName}:${JSON.stringify(toolCall.input)}`)
     .join("\n");
-  const raw = [
-    message.reasoningSignature,
-    message.reasoning,
-    message.text,
-    serializedToolCalls
-  ]
+  const raw = [message.reasoningSignature, message.reasoning, message.text, serializedToolCalls]
     .filter(Boolean)
     .join("\n");
   return Math.max(1, Math.ceil(raw.length / 4));
@@ -103,10 +94,7 @@ export class ContextBuilder {
         break;
       }
 
-      if (
-        selected.length > 0 &&
-        totalTokens + messageTokens > this.config.maxInputTokens
-      ) {
+      if (selected.length > 0 && totalTokens + messageTokens > this.config.maxInputTokens) {
         break;
       }
 

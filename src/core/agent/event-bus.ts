@@ -29,10 +29,7 @@ export class AgentEventBus {
    */
   emit(event: AgentEvent) {
     for (const subscription of this.subscriptions) {
-      if (
-        subscription.sessionId &&
-        subscription.sessionId !== event.sessionId
-      ) {
+      if (subscription.sessionId && subscription.sessionId !== event.sessionId) {
         continue;
       }
 

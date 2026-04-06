@@ -13,9 +13,7 @@ interface ThemeProviderProps {
  * consume it through this context without prop drilling.
  */
 export function ThemeProvider({ theme, children }: ThemeProviderProps) {
-  return (
-    <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
 }
 
 /**

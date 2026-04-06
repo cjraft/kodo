@@ -89,9 +89,8 @@ const optionalBoolean = makeValidator<boolean | undefined>((value) => {
   throw new Error(`Expected a boolean but received: ${value}`);
 });
 
-const optional = <T>(
-  validator: ReturnType<typeof makeValidator<T | undefined>>
-) => validator({ default: undefined });
+const optional = <T>(validator: ReturnType<typeof makeValidator<T | undefined>>) =>
+  validator({ default: undefined });
 
 /**
  * Bootstrap-owned env contract. Runtime modules should depend on typed config,
@@ -113,17 +112,13 @@ const ENV_VALIDATORS = {
   KODO_MAX_MESSAGES: optional(optionalNumber),
   KODO_BASH_TIMEOUT_MS: optional(optionalNumber),
   KODO_BASH_MAX_OUTPUT_CHARS: optional(optionalNumber),
-  KODO_ALLOW_DANGEROUS_BASH: optional(optionalBoolean)
+  KODO_ALLOW_DANGEROUS_BASH: optional(optionalBoolean),
 };
 
 /**
  * Aggregates all env validation errors into one readable message.
  */
-const reportValidationErrors = ({
-  errors
-}: {
-  errors: Record<string, Error>;
-}) => {
+const reportValidationErrors = ({ errors }: { errors: Record<string, Error> }) => {
   const entries = Object.entries(errors);
 
   if (entries.length === 0) {
@@ -132,17 +127,14 @@ const reportValidationErrors = ({
 
   throw new Error(
     entries
-      .map(
-        ([key, error]) =>
-          `${key}: ${error.message || error.name || "Invalid value"}`
-      )
-      .join("\n")
+      .map(([key, error]) => `${key}: ${error.message || error.name || "Invalid value"}`)
+      .join("\n"),
   );
 };
 
 const validateBootstrapEnv = (env: NodeJS.ProcessEnv) =>
   cleanEnv(env, ENV_VALIDATORS, {
-    reporter: reportValidationErrors
+    reporter: reportValidationErrors,
   });
 
 type RawBootstrapEnv = ReturnType<typeof validateBootstrapEnv>;
@@ -150,9 +142,7 @@ type RawBootstrapEnv = ReturnType<typeof validateBootstrapEnv>;
 /**
  * Maps validated raw env values into provider-neutral bootstrap input.
  */
-const mapCommonBootstrapEnv = (
-  raw: RawBootstrapEnv
-): BootstrapCommonOptions => ({
+const mapCommonBootstrapEnv = (raw: RawBootstrapEnv): BootstrapCommonOptions => ({
   storeRoot: raw.KODO_STORE_ROOT,
   skillsRoot: raw.KODO_SKILLS_ROOT,
   themeAccent: raw.KODO_THEME_ACCENT,
@@ -168,7 +158,7 @@ const mapCommonBootstrapEnv = (
   maxMessages: raw.KODO_MAX_MESSAGES,
   bashTimeoutMs: raw.KODO_BASH_TIMEOUT_MS,
   bashMaxOutputChars: raw.KODO_BASH_MAX_OUTPUT_CHARS,
-  allowDangerousBash: raw.KODO_ALLOW_DANGEROUS_BASH
+  allowDangerousBash: raw.KODO_ALLOW_DANGEROUS_BASH,
 });
 
 /**
@@ -185,6 +175,6 @@ export const readBootstrapEnv = (env: NodeJS.ProcessEnv): BootstrapEnv => {
 
   return {
     common: mapCommonBootstrapEnv(raw),
-    providers: mapProviderBootstrapEnv()
+    providers: mapProviderBootstrapEnv(),
   };
 };

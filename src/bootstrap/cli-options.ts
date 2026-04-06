@@ -51,40 +51,16 @@ export const parseCliOptions = (argv: string[]): CliOptions => {
     .option("--base-url <url>")
     .option("--model <model>")
     .option("--reasoning-effort <level>")
-    .option(
-      "--max-output-tokens <number>",
-      "maximum output tokens",
-      toOptionalNumber
-    )
-    .option(
-      "--context-window <number>",
-      "model context window",
-      toOptionalNumber
-    )
-    .option(
-      "--max-tool-iterations <number>",
-      "maximum tool iterations",
-      toOptionalNumber
-    )
-    .option(
-      "--max-input-tokens <number>",
-      "maximum context input tokens",
-      toOptionalNumber
-    )
-    .option(
-      "--max-messages <number>",
-      "maximum context messages",
-      toOptionalNumber
-    )
-    .option(
-      "--bash-timeout-ms <number>",
-      "bash tool timeout in milliseconds",
-      toOptionalNumber
-    )
+    .option("--max-output-tokens <number>", "maximum output tokens", toOptionalNumber)
+    .option("--context-window <number>", "model context window", toOptionalNumber)
+    .option("--max-tool-iterations <number>", "maximum tool iterations", toOptionalNumber)
+    .option("--max-input-tokens <number>", "maximum context input tokens", toOptionalNumber)
+    .option("--max-messages <number>", "maximum context messages", toOptionalNumber)
+    .option("--bash-timeout-ms <number>", "bash tool timeout in milliseconds", toOptionalNumber)
     .option(
       "--bash-max-output-chars <number>",
       "maximum bash tool output characters",
-      toOptionalNumber
+      toOptionalNumber,
     )
     .option("--allow-dangerous-bash");
 

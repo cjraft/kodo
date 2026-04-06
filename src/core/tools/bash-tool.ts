@@ -22,17 +22,15 @@ export interface BashToolInput {
 export const DEFAULT_BASH_TOOL_CONFIG: BashToolConfig = {
   timeoutMs: 15_000,
   maxOutputChars: 12_000,
-  allowDangerousCommands: false
+  allowDangerousCommands: false,
 };
 
 /**
  * Resolves bash tool config from optional overrides.
  */
-export const resolveBashToolConfig = (
-  config: BashToolOptions = {}
-): BashToolConfig => ({
+export const resolveBashToolConfig = (config: BashToolOptions = {}): BashToolConfig => ({
   ...DEFAULT_BASH_TOOL_CONFIG,
-  ...config
+  ...config,
 });
 
 /**
@@ -45,11 +43,10 @@ const DANGEROUS_PATTERNS = [
   /\bshutdown\b/,
   /\breboot\b/,
   /\bcurl\b.+\|\s*(sh|bash)\b/,
-  /\bwget\b.+\|\s*(sh|bash)\b/
+  /\bwget\b.+\|\s*(sh|bash)\b/,
 ];
 
-const ANSI_PATTERN =
-  /\u001B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\u0007]*(?:\u0007|\u001B\\))/g;
+const ANSI_PATTERN = /\u001B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\u0007]*(?:\u0007|\u001B\\))/g;
 const INVISIBLE_CONTROL_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
 const normalizeCommand = (input: string | BashToolInput) => {
@@ -89,10 +86,7 @@ const truncateOutput = (value: string, maxOutputChars: number) => {
 
   const prefix = `[output truncated: ${value.length} chars total]\n`;
   const separator = "\n...\n";
-  const previewBudget = Math.max(
-    32,
-    maxOutputChars - prefix.length - separator.length
-  );
+  const previewBudget = Math.max(32, maxOutputChars - prefix.length - separator.length);
   const headLength = Math.max(16, Math.floor(previewBudget * 0.45));
   const tailLength = Math.max(16, previewBudget - headLength);
 
@@ -111,11 +105,11 @@ export class BashTool implements Tool<string | BashToolInput> {
     properties: {
       command: {
         type: "string",
-        description: "The shell command to execute."
-      }
+        description: "The shell command to execute.",
+      },
     },
     required: ["command"],
-    additionalProperties: false
+    additionalProperties: false,
   };
 
   constructor(config: BashToolOptions = {}) {
@@ -125,29 +119,24 @@ export class BashTool implements Tool<string | BashToolInput> {
   /**
    * Runs the command in zsh and returns normalized stdout/stderr output.
    */
-  async execute(
-    input: string | BashToolInput,
-    context: ToolContext
-  ): Promise<ToolResult> {
+  async execute(input: string | BashToolInput, context: ToolContext): Promise<ToolResult> {
     const command = normalizeCommand(input);
 
     if (!command) {
       return {
         success: false,
-        text: "bash requires a valid command."
+        text: "bash requires a valid command.",
       };
     }
 
     if (!this.config.allowDangerousCommands) {
-      const blocked = DANGEROUS_PATTERNS.some((pattern) =>
-        pattern.test(command)
-      );
+      const blocked = DANGEROUS_PATTERNS.some((pattern) => pattern.test(command));
 
       if (blocked) {
         return {
           success: false,
           text: `Blocked dangerous command: ${command}`,
-          metadata: { blocked: true }
+          metadata: { blocked: true },
         };
       }
     }
@@ -155,7 +144,7 @@ export class BashTool implements Tool<string | BashToolInput> {
     return new Promise((resolve) => {
       const child = spawn("/bin/zsh", ["-lc", command], {
         cwd: context.cwd,
-        env: process.env
+        env: process.env,
       });
 
       let stdout = "";
@@ -189,7 +178,7 @@ export class BashTool implements Tool<string | BashToolInput> {
                 .filter(Boolean)
                 .join("\n")
             : combinedOutput,
-          this.config.maxOutputChars
+          this.config.maxOutputChars,
         );
         resolve({
           success,
@@ -197,8 +186,8 @@ export class BashTool implements Tool<string | BashToolInput> {
           metadata: {
             exitCode: code,
             timeoutMs: this.config.timeoutMs,
-            timedOut
-          }
+            timedOut,
+          },
         });
       });
     });

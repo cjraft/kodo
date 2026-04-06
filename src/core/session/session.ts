@@ -1,15 +1,12 @@
 import type { ContextBuilder } from "../context/builder.js";
 import type { LlmClient } from "../llm/types.js";
-import { SessionStore } from "../session/store.js";
+import { SessionStore } from "./store.js";
 import { ToolRegistry } from "../tools/registry.js";
-import { AgentEventBus } from "./event-bus.js";
-import { AgentRunExecutor } from "./run-executor.js";
-import { AgentSessionState } from "./session-state.js";
-import type {
-  AgentLoopConfig,
-  AgentSession,
-  AgentSessionView
-} from "./types.js";
+import { AgentEventBus } from "../agent/event-bus.js";
+import { AgentExecutor } from "../agent/executor.js";
+import type { AgentLoopConfig, AgentSessionView } from "../agent/types.js";
+import { AgentSessionState } from "./state.js";
+import type { AgentSession as AgentSessionContract } from "../agent/types.js";
 
 type SessionInitializationMode =
   | { type: "create" }
@@ -19,7 +16,7 @@ type SessionInitializationMode =
 /**
  * Concrete collaborators required for one live session runtime.
  */
-export interface AgentSessionRuntimeOptions {
+export interface AgentSessionOptions {
   cwd: string;
   store: SessionStore;
   tools: ToolRegistry;
@@ -31,26 +28,22 @@ export interface AgentSessionRuntimeOptions {
 
 /**
  * Session-scoped runtime that owns event delivery and delegates execution to
- * the run executor while keeping persistence in the session state module.
+ * the executor while keeping persistence in the session state module.
  */
-export class AgentSessionRuntime implements AgentSession {
+export class AgentSession implements AgentSessionContract {
   private readonly sessionState: AgentSessionState;
   private readonly events = new AgentEventBus();
-  private readonly executor: AgentRunExecutor;
+  private readonly executor: AgentExecutor;
 
-  constructor(private readonly options: AgentSessionRuntimeOptions) {
-    this.sessionState = new AgentSessionState(
-      options.store,
-      options.cwd,
-      options.llm.name
-    );
-    this.executor = new AgentRunExecutor({
+  constructor(private readonly options: AgentSessionOptions) {
+    this.sessionState = new AgentSessionState(options.store, options.cwd, options.llm.name);
+    this.executor = new AgentExecutor({
       llm: options.llm,
       tools: options.tools,
       loop: options.loop,
       events: this.events,
       sessionState: this.sessionState,
-      contextBuilder: options.contextBuilder
+      contextBuilder: options.contextBuilder,
     });
   }
 

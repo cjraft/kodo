@@ -5,15 +5,10 @@ import {
   listDirsSortedByMtime,
   readJson,
   readJsonLines,
-  writeJson
+  writeJson,
 } from "../../lib/fs.js";
 import { writeFile } from "node:fs/promises";
-import type {
-  Message,
-  SessionMeta,
-  SessionSnapshot,
-  ToolCallRecord
-} from "./types.js";
+import type { Message, SessionMeta, SessionSnapshot, ToolCallRecord } from "./types.js";
 
 /**
  * Parses persisted timestamps defensively so malformed values do not break
@@ -87,39 +82,29 @@ export class SessionStore {
     const sessionRoot = path.join(this.rootDir, "sessions");
     const dirs = await listDirsSortedByMtime(sessionRoot);
     const metas = await Promise.all(
-      dirs.map(({ name }) =>
-        readJson<SessionMeta>(this.getSessionFile(name)).catch(() => null)
-      )
+      dirs.map(({ name }) => readJson<SessionMeta>(this.getSessionFile(name)).catch(() => null)),
     );
 
-    return metas
-      .filter((meta): meta is SessionMeta => Boolean(meta))
-      .sort(compareSessionRecency);
+    return metas.filter((meta): meta is SessionMeta => Boolean(meta)).sort(compareSessionRecency);
   }
 
   /**
    * Reconstructs a full session snapshot from persisted files.
    */
   async load(sessionId: string): Promise<SessionSnapshot | null> {
-    const meta = await readJson<SessionMeta>(
-      this.getSessionFile(sessionId)
-    ).catch(() => null);
+    const meta = await readJson<SessionMeta>(this.getSessionFile(sessionId)).catch(() => null);
 
     if (!meta) {
       return null;
     }
 
-    const messages = await readJsonLines<Message>(
-      this.getMessagesFile(sessionId)
-    );
-    const toolCalls = await readJsonLines<ToolCallRecord>(
-      this.getToolCallsFile(sessionId)
-    );
+    const messages = await readJsonLines<Message>(this.getMessagesFile(sessionId));
+    const toolCalls = await readJsonLines<ToolCallRecord>(this.getToolCallsFile(sessionId));
 
     return {
       meta,
       messages,
-      toolCalls
+      toolCalls,
     };
   }
 
@@ -127,15 +112,12 @@ export class SessionStore {
    * Stores an artifact payload and a tiny sidecar metadata file for later inspection.
    */
   async writeArtifact(sessionId: string, artifactId: string, content: string) {
-    const targetPath = path.join(
-      this.getArtifactsDir(sessionId),
-      `${artifactId}.txt`
-    );
+    const targetPath = path.join(this.getArtifactsDir(sessionId), `${artifactId}.txt`);
     await ensureDir(path.dirname(targetPath));
     await writeFile(targetPath, content, "utf8");
     await writeJson(`${targetPath}.meta.json`, {
       id: artifactId,
-      size: content.length
+      size: content.length,
     });
     return targetPath;
   }

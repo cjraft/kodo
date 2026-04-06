@@ -7,9 +7,7 @@ import { resolveAppConfig } from "../../src/bootstrap/index.js";
 const tempDirs: string[] = [];
 
 afterEach(async () => {
-  await Promise.all(
-    tempDirs.map((dir) => rm(dir, { recursive: true, force: true }))
-  );
+  await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true })));
   tempDirs.length = 0;
 });
 
@@ -25,26 +23,23 @@ describe("resolveAppConfig", () => {
         "MODEL_API_KEY=sk-kimi-from-dotenv",
         "MODEL_BASE_URL=https://api.kimi.com/coding/",
         "MODEL_NAME=k2p5",
-        'KODO_THEME_ACCENT="#c9a7ff"'
+        'KODO_THEME_ACCENT="#c9a7ff"',
       ].join("\n"),
-      "utf8"
+      "utf8",
     );
 
-    const config = resolveAppConfig(
-      ["--cwd", dir],
-      {
-        MODEL_PROVIDER: "openai",
-        MODEL_API_KEY: "shell-key",
-        MODEL_BASE_URL: "https://api.openai.com/v1",
-        MODEL_NAME: "gpt-4.1-mini"
-      }
-    );
+    const config = resolveAppConfig(["--cwd", dir], {
+      MODEL_PROVIDER: "openai",
+      MODEL_API_KEY: "shell-key",
+      MODEL_BASE_URL: "https://api.openai.com/v1",
+      MODEL_NAME: "gpt-4.1-mini",
+    });
 
     expect(config.llm).toMatchObject({
       providerId: "kimi-coding",
       apiKey: "sk-kimi-from-dotenv",
       baseUrl: "https://api.kimi.com/coding/",
-      model: "k2p5"
+      model: "k2p5",
     });
     expect(config.ui.accentColor).toBe("#c9a7ff");
   });

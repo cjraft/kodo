@@ -1,23 +1,23 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { Message, ToolCallRecord } from "../../core/session/types.js";
+import type { Message, ToolCallRecord } from "../../../core/session/types.js";
 import {
-  buildConversationEntries,
-  createMessageSnippet,
+  createMessagePreview,
   formatClock,
   formatValuePreview,
-  selectVisibleConversationEntries
-} from "../launch-screen.js";
-import type { UiTheme } from "../theme.js";
-import { useTheme } from "../theme-context.js";
-import { SurfaceBar } from "./SurfaceBar.js";
+  resolveConversationLayout,
+} from "../../transcript/model.js";
+import type { UiTheme } from "../../theme/theme.js";
+import { useTerminalViewport } from "../../hooks/use-terminal-viewport.js";
+import { useTheme } from "../../theme/context.js";
+import { SurfaceBar } from "../SurfaceBar.js";
+import { useConversationFeed } from "./use-conversation-feed.js";
 
 interface ConversationFeedProps {
-  width: number;
   maxRows: number;
-  compactLayout: boolean;
   messages: Message[];
   toolCalls: ToolCallRecord[];
+  enabled?: boolean;
 }
 
 const getAssistantMarkerColor = (message: Message, theme: UiTheme) =>
@@ -28,31 +28,51 @@ const getAssistantMarkerColor = (message: Message, theme: UiTheme) =>
  * and subtle tool cards embedded inline.
  */
 export function ConversationFeed({
-  width,
   maxRows,
-  compactLayout,
   messages,
-  toolCalls
+  toolCalls,
+  enabled = true,
 }: ConversationFeedProps) {
   const theme = useTheme();
-  const entries = selectVisibleConversationEntries(
-    buildConversationEntries(messages, toolCalls),
-    maxRows
-  );
+  const viewport = useTerminalViewport();
+  const width = viewport.width;
+  const layout = resolveConversationLayout(width);
+  const { entries, hasOlder, hasNewer, stickyToBottom } = useConversationFeed({
+    width,
+    maxRows,
+    messages,
+    toolCalls,
+    enabled,
+  });
+  const latestModelOutputId =
+    [...entries]
+      .reverse()
+      .find(
+        (entry) =>
+          entry.kind === "message" &&
+          (entry.message.role === "assistant" || entry.message.role === "tool"),
+      )?.id ?? null;
   const toolCallById = new Map(toolCalls.map((toolCall) => [toolCall.id, toolCall]));
 
   if (entries.length === 0) {
     return (
       <Box marginTop={1} paddingX={1}>
-        <Text color={theme.mutedColor}>
-          No transcript yet. Send a prompt to wake the system.
-        </Text>
+        <Text color={theme.mutedColor}>No transcript yet. Send a prompt to wake the system.</Text>
       </Box>
     );
   }
 
   return (
     <Box flexDirection="column" marginTop={1}>
+      {hasOlder || hasNewer || !stickyToBottom ? (
+        <Box paddingX={1} marginBottom={1}>
+          <Text color={theme.mutedColor}>
+            Scroll down to return to the live edge.
+            {!stickyToBottom ? " Auto-stick paused." : ""}
+          </Text>
+        </Box>
+      ) : null}
+
       {entries.map((entry) => {
         if (entry.kind === "tool-call") {
           return (
@@ -72,23 +92,17 @@ export function ConversationFeed({
                 <Text color={theme.mutedColor}>{formatClock(entry.toolCall.createdAt)}</Text>
               </Box>
               <Text color={theme.mutedColor}>
-                args {formatValuePreview(entry.toolCall.input, compactLayout ? 72 : 108)}
+                args {formatValuePreview(entry.toolCall.input, layout.toolArgsPreviewWidth)}
               </Text>
             </Box>
           );
         }
 
         if (entry.message.role === "user") {
+          const preview = createMessagePreview(entry.message, layout);
           return (
             <Box key={entry.id} marginBottom={1}>
-              <SurfaceBar
-                prefix=">"
-                text={createMessageSnippet(
-                  entry.message,
-                  compactLayout ? 84 : 132
-                )}
-                width={width}
-              />
+              <SurfaceBar prefix=">" text={preview.text} width={width} />
             </Box>
           );
         }
@@ -97,6 +111,9 @@ export function ConversationFeed({
           const toolCall = entry.message.toolCallId
             ? toolCallById.get(entry.message.toolCallId)
             : undefined;
+          const preview = createMessagePreview(entry.message, layout, {
+            expanded: entry.id === latestModelOutputId,
+          });
 
           return (
             <Box
@@ -114,20 +131,20 @@ export function ConversationFeed({
                 </Text>
                 <Text color={theme.mutedColor}>{formatClock(entry.message.createdAt)}</Text>
               </Box>
-              <Text color="white">
-                {createMessageSnippet(entry.message, compactLayout ? 84 : 132)}
-              </Text>
+              <Text color="white">{preview.text}</Text>
             </Box>
           );
         }
+
+        const preview = createMessagePreview(entry.message, layout, {
+          expanded: entry.id === latestModelOutputId,
+        });
 
         return (
           <Box key={entry.id} gap={1} marginBottom={1}>
             <Text color={getAssistantMarkerColor(entry.message, theme)}>●</Text>
             <Box flexDirection="column" minWidth={0}>
-              <Text color="white">
-                {createMessageSnippet(entry.message, compactLayout ? 88 : 136)}
-              </Text>
+              <Text color="white">{preview.text}</Text>
               <Text color={theme.mutedColor}>{formatClock(entry.message.createdAt)}</Text>
             </Box>
           </Box>

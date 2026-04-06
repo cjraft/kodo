@@ -1,23 +1,14 @@
 import { createId } from "../../lib/id.js";
 import type { ContextBuilder } from "../context/builder.js";
-import type {
-  LlmClient,
-  ModelRequest,
-  ModelResponseEvent,
-  ModelStopReason
-} from "../llm/types.js";
-import type {
-  AssistantToolCall,
-  Message,
-  ToolCallRecord
-} from "../session/types.js";
+import type { LlmClient, ModelRequest, ModelResponseEvent, ModelStopReason } from "../llm/types.js";
+import type { AssistantToolCall, Message, ToolCallRecord } from "../session/types.js";
 import { ToolRegistry } from "../tools/registry.js";
 import type { ToolResult } from "../tools/types.js";
 import { AgentEventBus } from "./event-bus.js";
-import { AgentSessionState } from "./session-state.js";
+import { AgentSessionState } from "../session/state.js";
 import type { AgentLoopConfig } from "./types.js";
 
-interface AgentRunExecutorOptions {
+interface AgentExecutorOptions {
   llm: LlmClient;
   tools: ToolRegistry;
   loop: AgentLoopConfig;
@@ -38,8 +29,8 @@ interface CollectedModelResponse {
  * Executes one user turn end-to-end, including context assembly, streaming the
  * model response, invoking tools, and persisting the resulting transcript.
  */
-export class AgentRunExecutor {
-  constructor(private readonly options: AgentRunExecutorOptions) {}
+export class AgentExecutor {
+  constructor(private readonly options: AgentExecutorOptions) {}
 
   /**
    * Runs the agent loop for a single user input. The loop stops when the model
@@ -52,42 +43,30 @@ export class AgentRunExecutor {
       id: createId(),
       role: "user",
       text: input,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
-    await this.options.sessionState.appendMessage(
-      userMessage,
-      snapshot.meta.id
-    );
+    await this.options.sessionState.appendMessage(userMessage, snapshot.meta.id);
     this.options.events.emit({
       type: "run-start",
       sessionId: snapshot.meta.id,
-      runId
+      runId,
     });
 
     try {
-      for (
-        let iteration = 0;
-        iteration < this.options.loop.maxToolIterations;
-        iteration += 1
-      ) {
+      for (let iteration = 0; iteration < this.options.loop.maxToolIterations; iteration += 1) {
         this.options.events.emit({
           type: "status",
           sessionId: snapshot.meta.id,
           runId,
-          text: "Thinking..."
+          text: "Thinking...",
         });
 
-        const currentSnapshot = this.options.sessionState.snapshot(
-          snapshot.meta.id
-        );
+        const currentSnapshot = this.options.sessionState.snapshot(snapshot.meta.id);
         const response = await this.collectModelResponse(
           snapshot.meta.id,
           runId,
-          this.buildModelRequest(
-            currentSnapshot.messages,
-            currentSnapshot.meta.cwd
-          )
+          this.buildModelRequest(currentSnapshot.messages, currentSnapshot.meta.cwd),
         );
 
         await this.persistAssistantResponse(snapshot.meta.id, response);
@@ -96,7 +75,7 @@ export class AgentRunExecutor {
           this.options.events.emit({
             type: "done",
             sessionId: snapshot.meta.id,
-            runId
+            runId,
           });
           return;
         }
@@ -120,7 +99,7 @@ export class AgentRunExecutor {
     return {
       messages: this.options.contextBuilder.build({ messages }),
       tools: this.options.tools.listDefinitions(),
-      cwd
+      cwd,
     };
   }
 
@@ -131,13 +110,13 @@ export class AgentRunExecutor {
   private async collectModelResponse(
     sessionId: string,
     runId: string,
-    request: ModelRequest
+    request: ModelRequest,
   ): Promise<CollectedModelResponse> {
     const response: CollectedModelResponse = {
       reasoning: "",
       text: "",
       toolCalls: [],
-      stopReason: "end_turn"
+      stopReason: "end_turn",
     };
 
     for await (const event of this.options.llm.stream(request)) {
@@ -154,7 +133,7 @@ export class AgentRunExecutor {
     sessionId: string,
     runId: string,
     event: ModelResponseEvent,
-    response: CollectedModelResponse
+    response: CollectedModelResponse,
   ) {
     if (event.type === "text-delta") {
       response.text += event.text;
@@ -162,7 +141,7 @@ export class AgentRunExecutor {
         type: "text-delta",
         sessionId,
         runId,
-        text: event.text
+        text: event.text,
       });
       return;
     }
@@ -193,10 +172,7 @@ export class AgentRunExecutor {
   /**
    * Persists the assistant turn only when the model produced visible text or tool calls.
    */
-  private async persistAssistantResponse(
-    sessionId: string,
-    response: CollectedModelResponse
-  ) {
+  private async persistAssistantResponse(sessionId: string, response: CollectedModelResponse) {
     if (!response.text && response.toolCalls.length === 0) {
       return;
     }
@@ -209,9 +185,9 @@ export class AgentRunExecutor {
         reasoning: response.reasoning || undefined,
         reasoningSignature: response.reasoningSignature,
         toolCalls: response.toolCalls,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       },
-      sessionId
+      sessionId,
     );
   }
 
@@ -219,17 +195,13 @@ export class AgentRunExecutor {
    * Executes one tool call, persists both the tool record and the tool result
    * message, then publishes the corresponding lifecycle events.
    */
-  private async handleToolCall(
-    sessionId: string,
-    runId: string,
-    toolCallInput: AssistantToolCall
-  ) {
+  private async handleToolCall(sessionId: string, runId: string, toolCallInput: AssistantToolCall) {
     const snapshot = this.options.sessionState.snapshot(sessionId);
     const toolCall: ToolCallRecord = {
       id: toolCallInput.id,
       toolName: toolCallInput.toolName,
       input: toolCallInput.input,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     this.options.events.emit({
@@ -237,7 +209,7 @@ export class AgentRunExecutor {
       sessionId,
       runId,
       toolName: toolCall.toolName,
-      input: toolCall.input
+      input: toolCall.input,
     });
 
     const toolResult = await this.executeToolCall(toolCall, snapshot.meta.cwd);
@@ -254,9 +226,9 @@ export class AgentRunExecutor {
         toolName: toolCall.toolName,
         toolCallId: toolCall.id,
         toolError: !toolResult.success,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       },
-      sessionId
+      sessionId,
     );
 
     this.options.events.emit({
@@ -265,7 +237,7 @@ export class AgentRunExecutor {
       runId,
       toolName: toolCall.toolName,
       output: toolResult,
-      isError: !toolResult.success
+      isError: !toolResult.success,
     });
   }
 
@@ -273,25 +245,15 @@ export class AgentRunExecutor {
    * Normalizes unexpected tool failures into a standard tool result so the
    * agent loop can continue without leaking raw exceptions across boundaries.
    */
-  private async executeToolCall(
-    toolCall: ToolCallRecord,
-    cwd: string
-  ): Promise<ToolResult> {
+  private async executeToolCall(toolCall: ToolCallRecord, cwd: string): Promise<ToolResult> {
     try {
-      return await this.options.tools.execute(
-        toolCall.toolName,
-        toolCall.input,
-        {
-          cwd
-        }
-      );
+      return await this.options.tools.execute(toolCall.toolName, toolCall.input, {
+        cwd,
+      });
     } catch (error) {
       return {
         success: false,
-        text:
-          error instanceof Error
-            ? error.message
-            : "Tool execution failed unexpectedly."
+        text: error instanceof Error ? error.message : "Tool execution failed unexpectedly.",
       };
     }
   }
@@ -305,7 +267,7 @@ export class AgentRunExecutor {
       type: "status",
       sessionId,
       runId,
-      text: "Reached the tool limit, writing a final summary..."
+      text: "Reached the tool limit, writing a final summary...",
     });
 
     const snapshot = this.options.sessionState.snapshot(sessionId);
@@ -313,20 +275,19 @@ export class AgentRunExecutor {
       id: createId(),
       role: "user",
       text: "Stop using tools. Summarize the current state, what was completed, and what still needs user attention.",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     const response = await this.collectModelResponse(sessionId, runId, {
       messages: this.options.contextBuilder.build({
-        messages: [...snapshot.messages, finalPrompt]
+        messages: [...snapshot.messages, finalPrompt],
       }),
       tools: [],
-      cwd: snapshot.meta.cwd
+      cwd: snapshot.meta.cwd,
     });
 
     if (!response.text) {
-      response.text =
-        "Stopped after reaching the maximum tool iterations for this turn.";
+      response.text = "Stopped after reaching the maximum tool iterations for this turn.";
     }
 
     await this.options.sessionState.appendMessage(
@@ -336,9 +297,9 @@ export class AgentRunExecutor {
         text: response.text,
         reasoning: response.reasoning || undefined,
         reasoningSignature: response.reasoningSignature,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       },
-      sessionId
+      sessionId,
     );
 
     this.options.events.emit({ type: "done", sessionId, runId });
@@ -348,29 +309,24 @@ export class AgentRunExecutor {
    * Converts an unexpected run failure into a persisted assistant message and
    * a structured error event for the UI.
    */
-  private async handleRunError(
-    sessionId: string,
-    runId: string,
-    error: unknown
-  ) {
-    const message =
-      error instanceof Error ? error.message : "Agent run failed unexpectedly.";
+  private async handleRunError(sessionId: string, runId: string, error: unknown) {
+    const message = error instanceof Error ? error.message : "Agent run failed unexpectedly.";
 
     await this.options.sessionState.appendMessage(
       {
         id: createId(),
         role: "assistant",
         text: `Run failed: ${message}`,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       },
-      sessionId
+      sessionId,
     );
 
     this.options.events.emit({
       type: "error",
       sessionId,
       runId,
-      message
+      message,
     });
     this.options.events.emit({ type: "done", sessionId, runId });
   }

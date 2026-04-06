@@ -7,9 +7,7 @@ import { FileEditTool } from "../../../src/core/tools/file-edit-tool.js";
 const tempDirs: string[] = [];
 
 afterEach(async () => {
-  await Promise.all(
-    tempDirs.map((dir) => rm(dir, { recursive: true, force: true }))
-  );
+  await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true })));
   tempDirs.length = 0;
 });
 
@@ -27,9 +25,9 @@ describe("FileEditTool", () => {
         path: "sample.txt",
         startLine: 2,
         endLine: 3,
-        newContent: "updated-a\nupdated-b"
+        newContent: "updated-a\nupdated-b",
       },
-      { cwd: dir }
+      { cwd: dir },
     );
 
     const content = await readFile(filePath, "utf8");

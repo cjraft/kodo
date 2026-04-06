@@ -18,12 +18,7 @@ const normalizePath = (input: string | FileReadInput) => {
     return String(input).trim();
   }
 
-  if (
-    input &&
-    typeof input === "object" &&
-    "path" in input &&
-    typeof input.path === "string"
-  ) {
+  if (input && typeof input === "object" && "path" in input && typeof input.path === "string") {
     return input.path.trim();
   }
 
@@ -41,26 +36,23 @@ export class FileReadTool implements Tool<string | FileReadInput> {
     properties: {
       path: {
         type: "string",
-        description: "Relative file path to read."
-      }
+        description: "Relative file path to read.",
+      },
     },
     required: ["path"],
-    additionalProperties: false
+    additionalProperties: false,
   };
 
   /**
    * Resolves the relative path against the tool context cwd and returns file contents.
    */
-  async execute(
-    input: string | FileReadInput,
-    context: ToolContext
-  ): Promise<ToolResult> {
+  async execute(input: string | FileReadInput, context: ToolContext): Promise<ToolResult> {
     const relativePath = normalizePath(input);
 
     if (!relativePath) {
       return {
         success: false,
-        text: "file_read requires a valid path."
+        text: "file_read requires a valid path.",
       };
     }
 
@@ -70,7 +62,7 @@ export class FileReadTool implements Tool<string | FileReadInput> {
     return {
       success: true,
       text: content,
-      metadata: { path: filePath }
+      metadata: { path: filePath },
     };
   }
 }

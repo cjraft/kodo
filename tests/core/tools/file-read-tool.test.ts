@@ -7,9 +7,7 @@ import { FileReadTool } from "../../../src/core/tools/file-read-tool.js";
 const tempDirs: string[] = [];
 
 afterEach(async () => {
-  await Promise.all(
-    tempDirs.map((dir) => rm(dir, { recursive: true, force: true }))
-  );
+  await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true })));
   tempDirs.length = 0;
 });
 

@@ -10,7 +10,7 @@ describe("readBootstrapEnv", () => {
       MODEL_NAME: "gpt-4.1-mini",
       MODEL_REASONING_EFFORT: "medium",
       MODEL_MAX_OUTPUT_TOKENS: "2048",
-      MODEL_CONTEXT_WINDOW: "16384"
+      MODEL_CONTEXT_WINDOW: "16384",
     });
 
     expect(env.common).toMatchObject({
@@ -20,7 +20,7 @@ describe("readBootstrapEnv", () => {
       model: "gpt-4.1-mini",
       reasoningEffort: "medium",
       maxOutputTokens: 2048,
-      contextWindow: 16384
+      contextWindow: 16384,
     });
     expect(env.providers).toEqual({});
   });
@@ -30,7 +30,7 @@ describe("readBootstrapEnv", () => {
       KODO_PROVIDER: "openai",
       OPENAI_API_KEY: "legacy-key",
       OPENAI_BASE_URL: "https://api.openai.com/v1",
-      OPENAI_MODEL: "gpt-4.1-mini"
+      OPENAI_MODEL: "gpt-4.1-mini",
     });
 
     expect(env.common.provider).toBeUndefined();

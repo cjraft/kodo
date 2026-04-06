@@ -1,6 +1,5 @@
 const hexColorPattern = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
-const rgbColorPattern =
-  /^rgb\(\s?\d{1,3},\s?\d{1,3},\s?\d{1,3}\s?\)$/;
+const rgbColorPattern = /^rgb\(\s?\d{1,3},\s?\d{1,3},\s?\d{1,3}\s?\)$/;
 const namedColorPattern = /^[a-zA-Z]+$/;
 
 const defaultAccentColor = "#d6b3ff";
@@ -24,9 +23,7 @@ export interface UiTheme {
 }
 
 const isSupportedInkColor = (value: string) =>
-  hexColorPattern.test(value) ||
-  rgbColorPattern.test(value) ||
-  namedColorPattern.test(value);
+  hexColorPattern.test(value) || rgbColorPattern.test(value) || namedColorPattern.test(value);
 
 /**
  * UI domain defaults and validation for CLI theming. Bootstrap composes this
@@ -37,7 +34,7 @@ export const resolveUiTheme = (input: UiThemeInput = {}): UiTheme => {
 
   if (!isSupportedInkColor(accentColor)) {
     throw new Error(
-      `Unsupported theme accent color: ${accentColor}. Use a named color, #hex, or rgb(r,g,b).`
+      `Unsupported theme accent color: ${accentColor}. Use a named color, #hex, or rgb(r,g,b).`,
     );
   }
 
@@ -45,6 +42,6 @@ export const resolveUiTheme = (input: UiThemeInput = {}): UiTheme => {
     accentColor,
     surfaceColor: defaultSurfaceColor,
     mutedColor: defaultMutedColor,
-    errorColor: defaultErrorColor
+    errorColor: defaultErrorColor,
   };
 };

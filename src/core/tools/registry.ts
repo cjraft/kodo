@@ -40,24 +40,20 @@ export class ToolRegistry {
     return [...this.tools.values()].map((tool) => ({
       name: tool.name,
       description: tool.description,
-      inputSchema: tool.inputSchema
+      inputSchema: tool.inputSchema,
     }));
   }
 
   /**
    * Executes a tool by name and normalizes unknown-tool failures into the standard contract.
    */
-  async execute(
-    toolName: string,
-    input: unknown,
-    context: ToolContext
-  ): Promise<ToolResult> {
+  async execute(toolName: string, input: unknown, context: ToolContext): Promise<ToolResult> {
     const tool = this.tools.get(toolName);
 
     if (!tool) {
       return {
         success: false,
-        text: `Unknown tool: ${toolName}`
+        text: `Unknown tool: ${toolName}`,
       };
     }
 

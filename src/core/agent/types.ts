@@ -1,9 +1,4 @@
-import type {
-  Message,
-  SessionMeta,
-  SessionSnapshot,
-  ToolCallRecord
-} from "../session/types.js";
+import type { Message, SessionSnapshot, ToolCallRecord } from "../session/types.js";
 
 /**
  * Controls how many model -> tool -> model turns a single run may perform
@@ -61,14 +56,3 @@ export type AgentEvent =
   | { type: "done"; sessionId: string; runId: string };
 
 export type AgentListener = (event: AgentEvent) => void;
-
-/**
- * Top-level agent entrypoint exposed by bootstrap. It creates or restores
- * sessions without leaking storage or provider details to the caller.
- */
-export interface AgentService {
-  createSession(): Promise<AgentSession>;
-  loadSession(sessionId: string): Promise<AgentSession>;
-  loadLatestSession(): Promise<AgentSession>;
-  listSessions(): Promise<SessionMeta[]>;
-}

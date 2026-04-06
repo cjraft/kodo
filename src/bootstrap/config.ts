@@ -2,20 +2,13 @@ import os from "node:os";
 import path from "node:path";
 import { resolveAgentLoopConfig } from "../core/agent/config.js";
 import type { AgentLoopConfig } from "../core/agent/types.js";
-import {
-  resolveContextBuilderConfig,
-  type ContextBuilderConfig
-} from "../core/context/builder.js";
+import { resolveContextBuilderConfig, type ContextBuilderConfig } from "../core/context/builder.js";
 import type { PiAiClientConfig } from "../core/llm/client.js";
 import type { ToolRegistryConfig } from "../core/tools/registry.js";
 import { resolveBashToolConfig } from "../core/tools/bash-tool.js";
-import { resolveUiTheme, type UiTheme } from "../ui/theme.js";
+import { resolveUiTheme, type UiTheme } from "../ui/theme/theme.js";
 import type { CliOptions } from "./cli-options.js";
-import type {
-  BootstrapCommonOptions,
-  BootstrapEnv,
-  ProviderLlmOptions
-} from "./env.js";
+import type { BootstrapCommonOptions, BootstrapEnv, ProviderLlmOptions } from "./env.js";
 import { buildLlmConfig } from "./llm-config.js";
 
 /**
@@ -42,21 +35,17 @@ export interface BootstrapOptions {
   providers: Record<string, ProviderLlmOptions | undefined>;
 }
 
-const mergeDefined = <T extends object>(
-  ...sources: Array<Partial<T> | undefined>
-): T => Object.assign({}, ...sources);
+const mergeDefined = <T extends object>(...sources: Array<Partial<T> | undefined>): T =>
+  Object.assign({}, ...sources);
 
 /**
  * Applies the single bootstrap precedence rule: CLI overrides environment input.
  */
-export const mergeBootstrapOptions = (
-  cli: CliOptions,
-  env: BootstrapEnv
-): BootstrapOptions => ({
+export const mergeBootstrapOptions = (cli: CliOptions, env: BootstrapEnv): BootstrapOptions => ({
   common: mergeDefined<BootstrapCommonOptions>(env.common, cli),
   providers: {
-    ...env.providers
-  }
+    ...env.providers,
+  },
 });
 
 /**
@@ -66,44 +55,42 @@ export const loadAppConfig = (
   options: BootstrapOptions,
   runtime = {
     cwd: process.cwd(),
-    homeDir: os.homedir()
-  }
+    homeDir: os.homedir(),
+  },
 ): AppConfig => {
   const cwd = options.common.cwd?.trim() || runtime.cwd;
   const llm = buildLlmConfig(options);
   const context: ContextBuilderConfig = resolveContextBuilderConfig(
     {
       maxInputTokens: options.common.maxInputTokens,
-      maxMessages: options.common.maxMessages
+      maxMessages: options.common.maxMessages,
     },
-    llm
+    llm,
   );
   const tools: ToolRegistryConfig = {
     bash: resolveBashToolConfig({
       timeoutMs: options.common.bashTimeoutMs,
       maxOutputChars: options.common.bashMaxOutputChars,
-      allowDangerousCommands: options.common.allowDangerousBash
-    })
+      allowDangerousCommands: options.common.allowDangerousBash,
+    }),
   };
   const agent = {
     loop: resolveAgentLoopConfig({
-      maxToolIterations: options.common.maxToolIterations
-    }) satisfies AgentLoopConfig
+      maxToolIterations: options.common.maxToolIterations,
+    }) satisfies AgentLoopConfig,
   };
   const ui = resolveUiTheme({
-    accentColor: options.common.themeAccent
+    accentColor: options.common.themeAccent,
   });
 
   return {
     cwd,
     storeRoot: options.common.storeRoot?.trim() || path.join(cwd, ".kodo"),
-    skillsRoot:
-      options.common.skillsRoot?.trim() ||
-      path.join(runtime.homeDir, ".kodo", "skills"),
+    skillsRoot: options.common.skillsRoot?.trim() || path.join(runtime.homeDir, ".kodo", "skills"),
     ui,
     agent,
     context,
     tools,
-    llm
+    llm,
   };
 };

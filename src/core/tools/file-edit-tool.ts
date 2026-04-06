@@ -23,33 +23,30 @@ export class FileEditTool implements Tool<FileEditInput> {
     properties: {
       path: {
         type: "string",
-        description: "Relative file path to edit."
+        description: "Relative file path to edit.",
       },
       startLine: {
         type: "number",
-        description: "1-based inclusive start line."
+        description: "1-based inclusive start line.",
       },
       endLine: {
         type: "number",
-        description: "1-based inclusive end line."
+        description: "1-based inclusive end line.",
       },
       newContent: {
         type: "string",
-        description: "Replacement content for the selected line range."
-      }
+        description: "Replacement content for the selected line range.",
+      },
     },
     required: ["path", "startLine", "endLine", "newContent"],
-    additionalProperties: false
+    additionalProperties: false,
   };
 
   /**
    * Replaces the inclusive line range with new content. Line numbers are 1-based
    * so they match editor and LLM-oriented file references.
    */
-  async execute(
-    input: FileEditInput,
-    context: ToolContext
-  ): Promise<ToolResult> {
+  async execute(input: FileEditInput, context: ToolContext): Promise<ToolResult> {
     const filePath = path.resolve(context.cwd, input.path);
     const before = await readFile(filePath, "utf8");
     const lines = before.split("\n");
@@ -65,7 +62,7 @@ export class FileEditTool implements Tool<FileEditInput> {
       return {
         success: false,
         text: `Invalid line range for ${filePath}`,
-        metadata: { path: filePath }
+        metadata: { path: filePath },
       };
     }
 
@@ -73,7 +70,7 @@ export class FileEditTool implements Tool<FileEditInput> {
     const after = [
       ...lines.slice(0, startIndex),
       ...replacementLines,
-      ...lines.slice(endIndex + 1)
+      ...lines.slice(endIndex + 1),
     ].join("\n");
     await writeFile(filePath, after, "utf8");
 
@@ -84,8 +81,8 @@ export class FileEditTool implements Tool<FileEditInput> {
         path: filePath,
         changed: before !== after,
         startLine: input.startLine,
-        endLine: input.endLine
-      }
+        endLine: input.endLine,
+      },
     };
   }
 }

@@ -2,15 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   loadAppConfig,
   type BootstrapOptions,
-  mergeBootstrapOptions
+  mergeBootstrapOptions,
 } from "../../src/bootstrap/config.js";
 
-const createOptions = (
-  overrides: Partial<BootstrapOptions> = {}
-): BootstrapOptions => ({
+const createOptions = (overrides: Partial<BootstrapOptions> = {}): BootstrapOptions => ({
   common: {},
   providers: {},
-  ...overrides
+  ...overrides,
 });
 
 describe("loadAppConfig", () => {
@@ -20,21 +18,21 @@ describe("loadAppConfig", () => {
         provider: "openai",
         model: "gpt-4.1",
         maxMessages: 10,
-        allowDangerousBash: false
+        allowDangerousBash: false,
       },
       {
         common: {
           provider: "kimi",
           model: "k2p5",
           maxMessages: 20,
-          allowDangerousBash: true
+          allowDangerousBash: true,
         },
         providers: {
           openai: {
-            apiKey: "openai-key"
-          }
-        }
-      }
+            apiKey: "openai-key",
+          },
+        },
+      },
     );
 
     expect(options.common.provider).toBe("openai");
@@ -49,18 +47,18 @@ describe("loadAppConfig", () => {
       createOptions({
         common: {
           cwd: "/workspace/project",
-          provider: "openai"
+          provider: "openai",
         },
         providers: {
           openai: {
-            apiKey: "openai-key"
-          }
-        }
+            apiKey: "openai-key",
+          },
+        },
       }),
       {
         cwd: "/fallback/cwd",
-        homeDir: "/Users/tester"
-      }
+        homeDir: "/Users/tester",
+      },
     );
 
     expect(config.cwd).toBe("/workspace/project");
@@ -76,14 +74,14 @@ describe("loadAppConfig", () => {
       createOptions({
         common: {
           provider: "openai",
-          themeAccent: "#c8a2ff"
+          themeAccent: "#c8a2ff",
         },
         providers: {
           openai: {
-            apiKey: "openai-key"
-          }
-        }
-      })
+            apiKey: "openai-key",
+          },
+        },
+      }),
     );
 
     expect(config.ui.accentColor).toBe("#c8a2ff");

@@ -4,7 +4,7 @@ import prettier from "eslint-config-prettier";
 
 export default [
   {
-    ignores: ["dist/**", "node_modules/**"]
+    ignores: ["dist/**", "node_modules/**"],
   },
   {
     files: ["**/*.ts", "**/*.tsx"],
@@ -13,11 +13,11 @@ export default [
       parserOptions: {
         project: false,
         ecmaVersion: "latest",
-        sourceType: "module"
-      }
+        sourceType: "module",
+      },
     },
     plugins: {
-      "@typescript-eslint": tseslint
+      "@typescript-eslint": tseslint,
     },
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
@@ -25,11 +25,11 @@ export default [
         "error",
         {
           argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_"
-        }
+          varsIgnorePattern: "^_",
+        },
       ],
-      "no-console": "off"
-    }
+      "no-console": "off",
+    },
   },
-  prettier
+  prettier,
 ];

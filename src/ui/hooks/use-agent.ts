@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type {
-  AgentEvent,
-  AgentSession,
-  AgentService,
-  AgentSessionView
-} from "../../core/agent/types.js";
+import type { AgentEvent, AgentSession, AgentSessionView } from "../../core/agent/types.js";
+import type { AgentRuntime } from "../../core/agent/runtime.js";
 import type { SessionMeta } from "../../core/session/types.js";
 
 type RunPhase = "idle" | "thinking" | "streaming" | "tool-running";
@@ -14,20 +10,18 @@ type RunPhase = "idle" | "thinking" | "streaming" | "tool-running";
  */
 const buildSessionStatus = (
   session: AgentSessionView,
-  action: "started" | "loaded" | "resumed" = "loaded"
+  action: "started" | "loaded" | "resumed" = "loaded",
 ) => `Session ${session.meta.id.slice(0, 8)} ${action}`;
 
 const findResumeTarget = (
   sessions: SessionMeta[],
   currentSessionId: string | null,
-  query?: string
+  query?: string,
 ) => {
   const normalizedQuery = query?.trim();
 
   if (!normalizedQuery) {
-    const previousSession = sessions.find(
-      (meta) => meta.id !== currentSessionId
-    );
+    const previousSession = sessions.find((meta) => meta.id !== currentSessionId);
 
     if (!previousSession) {
       throw new Error("No previous sessions available.");
@@ -37,7 +31,7 @@ const findResumeTarget = (
   }
 
   const matches = sessions.filter(
-    (meta) => meta.id === normalizedQuery || meta.id.startsWith(normalizedQuery)
+    (meta) => meta.id === normalizedQuery || meta.id.startsWith(normalizedQuery),
   );
 
   if (matches.length === 0) {
@@ -45,9 +39,7 @@ const findResumeTarget = (
   }
 
   if (matches.length > 1) {
-    throw new Error(
-      `Multiple sessions match ${normalizedQuery}. Use a longer id prefix.`
-    );
+    throw new Error(`Multiple sessions match ${normalizedQuery}. Use a longer id prefix.`);
   }
 
   return matches[0].id;
@@ -57,7 +49,7 @@ const findResumeTarget = (
  * React-facing adapter for the agent service. It translates session events into
  * stable UI state, including optimistic streaming text while a run is active.
  */
-export const useAgent = (agent: AgentService, sessionId?: string) => {
+export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [runPhase, setRunPhase] = useState<RunPhase>("idle");
@@ -73,10 +65,7 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
   /**
    * Rebinds the hook to a specific session and resets transient run state.
    */
-  const bindSession = (
-    nextSession: AgentSession,
-    action: "started" | "loaded" | "resumed"
-  ) => {
+  const bindSession = (nextSession: AgentSession, action: "started" | "loaded" | "resumed") => {
     unsubscribeRef.current();
 
     // Only refreshes the session view from the store — does not touch run state.
@@ -120,11 +109,7 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
         // LLM resumes thinking after processing tool results.
         setRunPhase("thinking");
         setActiveToolName(null);
-        setStatus(
-          event.isError
-            ? `${event.toolName} failed`
-            : `${event.toolName} completed`
-        );
+        setStatus(event.isError ? `${event.toolName} failed` : `${event.toolName} completed`);
         refreshSessionView();
       }
 
@@ -169,7 +154,7 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
       mountedRef.current = false;
       unsubscribeRef.current();
     },
-    []
+    [],
   );
 
   useEffect(() => {
@@ -212,9 +197,8 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
             id: "streaming-assistant",
             role: "assistant" as const,
             text: streamingText,
-            createdAt:
-              streamingMessageCreatedAtRef.current ?? new Date().toISOString()
-          }
+            createdAt: streamingMessageCreatedAtRef.current ?? new Date().toISOString(),
+          },
         ]
       : messages;
 
@@ -232,17 +216,11 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
       try {
         setStatus("Resolving session...");
         const sessions = await agent.listSessions();
-        const targetSessionId = findResumeTarget(
-          sessions,
-          activeSession?.id ?? null,
-          query
-        );
+        const targetSessionId = findResumeTarget(sessions, activeSession?.id ?? null, query);
         const nextSession = await agent.loadSession(targetSessionId);
         bindSession(nextSession, "resumed");
       } catch (error) {
-        setStatus(
-          `Resume failed: ${error instanceof Error ? error.message : String(error)}`
-        );
+        setStatus(`Resume failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     },
     run: (input: string) => {
@@ -254,6 +232,6 @@ export const useAgent = (agent: AgentService, sessionId?: string) => {
       setRunPhase("thinking");
       setActiveToolName(null);
       return activeSession.run(input);
-    }
+    },
   };
 };

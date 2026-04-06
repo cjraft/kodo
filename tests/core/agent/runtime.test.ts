@@ -4,11 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { AgentRuntime } from "../../../src/core/agent/runtime.js";
 import { ContextBuilder } from "../../../src/core/context/builder.js";
-import type {
-  LlmClient,
-  ModelRequest,
-  ModelResponseEvent
-} from "../../../src/core/llm/types.js";
+import type { LlmClient, ModelRequest, ModelResponseEvent } from "../../../src/core/llm/types.js";
 import { SessionStore } from "../../../src/core/session/store.js";
 import { ToolRegistry } from "../../../src/core/tools/registry.js";
 
@@ -17,9 +13,7 @@ const tempDirs: string[] = [];
 class TestCommandClient implements LlmClient {
   readonly name = "test/command-client";
 
-  async *stream(
-    input: ModelRequest
-  ): AsyncIterable<ModelResponseEvent> {
+  async *stream(input: ModelRequest): AsyncIterable<ModelResponseEvent> {
     const latestMessage = input.messages.at(-1);
     const latestUserMessage = [...input.messages]
       .reverse()
@@ -39,8 +33,8 @@ class TestCommandClient implements LlmClient {
         toolCall: {
           id: "tool-call-1",
           toolName: "bash",
-          input: text.slice(6)
-        }
+          input: text.slice(6),
+        },
       };
       yield { type: "done", stopReason: "tool_use" };
       return;
@@ -52,9 +46,7 @@ class TestCommandClient implements LlmClient {
 }
 
 afterEach(async () => {
-  await Promise.all(
-    tempDirs.map((dir) => rm(dir, { recursive: true, force: true }))
-  );
+  await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true })));
   tempDirs.length = 0;
 });
 
@@ -65,12 +57,12 @@ const createRuntime = (storeRoot: string) =>
     tools: new ToolRegistry(),
     llm: new TestCommandClient(),
     loop: {
-      maxToolIterations: 8
+      maxToolIterations: 8,
     },
     contextBuilder: new ContextBuilder({
       maxInputTokens: 8_000,
-      maxMessages: 64
-    })
+      maxMessages: 64,
+    }),
   });
 
 describe("AgentRuntime", () => {
@@ -125,9 +117,6 @@ describe("AgentRuntime", () => {
 
     expect(secondSession.id).not.toBe(firstSession.id);
     expect(secondSession.read()?.messages).toHaveLength(0);
-    expect(sessions.map((session) => session.id)).toEqual([
-      secondSession.id,
-      firstSession.id
-    ]);
+    expect(sessions.map((session) => session.id)).toEqual([secondSession.id, firstSession.id]);
   });
 });

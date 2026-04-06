@@ -1,13 +1,13 @@
-import {mkdtemp, readFile, rm} from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import {afterEach, describe, expect, it} from "vitest";
-import {SessionStore} from "../../../src/core/session/store.js";
+import { afterEach, describe, expect, it } from "vitest";
+import { SessionStore } from "../../../src/core/session/store.js";
 
 const tempDirs: string[] = [];
 
 afterEach(async () => {
-  await Promise.all(tempDirs.map((dir) => rm(dir, {recursive: true, force: true})));
+  await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true })));
   tempDirs.length = 0;
 });
 
@@ -22,14 +22,14 @@ describe("SessionStore", () => {
       cwd: "/tmp/project",
       createdAt: "2025-01-01T00:00:00.000Z",
       updatedAt: "2025-01-01T00:00:00.000Z",
-      provider: "test/provider"
+      provider: "test/provider",
     });
 
     await store.appendMessage("s1", {
       id: "m1",
       role: "user",
       text: "hello",
-      createdAt: "2025-01-01T00:00:01.000Z"
+      createdAt: "2025-01-01T00:00:01.000Z",
     });
 
     const latest = await store.loadLatest();
@@ -49,14 +49,14 @@ describe("SessionStore", () => {
       cwd: "/tmp/project",
       createdAt: "2025-01-01T00:00:00.000Z",
       updatedAt: "2025-01-01T00:00:00.000Z",
-      provider: "test/provider"
+      provider: "test/provider",
     });
     await store.create({
       id: "s2",
       cwd: "/tmp/project",
       createdAt: "2025-01-01T00:00:01.000Z",
       updatedAt: "2025-01-01T00:00:01.000Z",
-      provider: "test/provider"
+      provider: "test/provider",
     });
 
     await store.saveMeta({
@@ -64,7 +64,7 @@ describe("SessionStore", () => {
       cwd: "/tmp/project",
       createdAt: "2025-01-01T00:00:00.000Z",
       updatedAt: "2025-01-01T00:00:02.000Z",
-      provider: "test/provider"
+      provider: "test/provider",
     });
 
     const metas = await store.listMetas();
@@ -84,7 +84,7 @@ describe("SessionStore", () => {
       cwd: "/tmp/project",
       createdAt: "2025-01-01T00:00:00.000Z",
       updatedAt: "2025-01-01T00:00:00.000Z",
-      provider: "test/provider"
+      provider: "test/provider",
     });
 
     const artifactPath = await store.writeArtifact("s1", "a1", "artifact body");

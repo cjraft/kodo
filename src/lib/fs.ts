@@ -1,8 +1,8 @@
-import {mkdir, readdir, readFile, stat, writeFile} from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export const ensureDir = async (targetPath: string) => {
-  await mkdir(targetPath, {recursive: true});
+  await mkdir(targetPath, { recursive: true });
 };
 
 export const writeJson = async (targetPath: string, data: unknown) => {
@@ -31,15 +31,15 @@ export const readJsonLines = async <T>(targetPath: string) => {
 };
 
 export const listDirsSortedByMtime = async (targetPath: string) => {
-  const entries = await readdir(targetPath, {withFileTypes: true}).catch(() => []);
+  const entries = await readdir(targetPath, { withFileTypes: true }).catch(() => []);
   const dirs = await Promise.all(
     entries
       .filter((entry) => entry.isDirectory())
       .map(async (entry) => {
         const fullPath = path.join(targetPath, entry.name);
         const info = await stat(fullPath);
-        return {name: entry.name, mtimeMs: info.mtimeMs};
-      })
+        return { name: entry.name, mtimeMs: info.mtimeMs };
+      }),
   );
 
   return dirs.sort((left, right) => right.mtimeMs - left.mtimeMs);

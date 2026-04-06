@@ -28,7 +28,7 @@ const VALID_REASONING_EFFORTS = new Set<ReasoningEffort>([
   "low",
   "medium",
   "high",
-  "xhigh"
+  "xhigh",
 ]);
 
 const DEFAULT_KIMI_BASE_URL = "https://api.kimi.com/coding/";
@@ -46,21 +46,19 @@ export const KNOWN_LLM_PROVIDER_PROFILES: LlmProviderProfile[] = [
       model: DEFAULT_KIMI_MODEL,
       reasoning: "medium",
       maxOutputTokens: 32_768,
-      contextWindow: 262_144
+      contextWindow: 262_144,
     },
     normalizeModel: (model) =>
-      !model || model === "kimi-for-coding" || model === "k2p5"
-        ? DEFAULT_KIMI_MODEL
-        : model
+      !model || model === "kimi-for-coding" || model === "k2p5" ? DEFAULT_KIMI_MODEL : model,
   },
   {
     canonicalId: "openai",
     aliases: ["openai-compatible"],
     defaults: {
       baseUrl: "https://api.openai.com/v1",
-      model: "gpt-4.1-mini"
-    }
-  }
+      model: "gpt-4.1-mini",
+    },
+  },
 ];
 
 const normalizeString = (value: string | undefined) => {
@@ -79,8 +77,7 @@ export const findKnownLlmProviderProfile = (providerId: string | undefined) => {
   }
 
   return KNOWN_LLM_PROVIDER_PROFILES.find(
-    (profile) =>
-      profile.canonicalId === normalized || profile.aliases.includes(normalized)
+    (profile) => profile.canonicalId === normalized || profile.aliases.includes(normalized),
   );
 };
 
@@ -92,7 +89,7 @@ export const resolveLlmProviderProfile = (providerId: string) =>
   findKnownLlmProviderProfile(providerId) ?? {
     canonicalId: providerId,
     aliases: [],
-    defaults: {}
+    defaults: {},
   };
 
 /**

@@ -52,10 +52,10 @@ Type your task in the prompt and press Enter. Kodo will plan, call tools, and st
 
 **Slash commands**
 
-| Command | Description |
-|---|---|
+| Command   | Description               |
+| --------- | ------------------------- |
 | `/resume` | Resume a previous session |
-| `/help` | Show available commands |
+| `/help`   | Show available commands   |
 
 ## Sessions
 
