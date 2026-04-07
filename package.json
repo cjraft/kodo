@@ -1,8 +1,14 @@
 {
-  "name": "kodo",
-  "version": "0.0.1",
+  "name": "@cjraft/kodo",
+  "version": "0.0.3",
   "type": "module",
   "description": "A local coding agent CLI with an Ink TUI.",
+  "keywords": [
+    "ai",
+    "agent",
+    "coding-agent",
+    "cli"
+  ],
   "bin": {
     "kodo": "dist/index.js"
   },

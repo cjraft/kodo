@@ -27,7 +27,7 @@
 Kodo is a local-first coding agent that runs in your terminal, talks to LLMs, and uses powerful tools to help you build software faster. Built with a clean layered architecture and a slick Ink-based TUI.
 
 <div align="center">
-  <img src="./assets/demo.gif" width="700" alt="Kodo Terminal UI Demo" />
+  <img src="https://raw.githubusercontent.com/cjraft/kodo/main/assets/demo.gif" width="700" alt="Kodo Terminal UI Demo" />
   <p><sub>⚡️ Interactive terminal interface with streaming output and real-time feedback</sub></p>
 </div>
 
