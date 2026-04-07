@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import React from "react";
 import os from "node:os";
 import { createRequire } from "node:module";
