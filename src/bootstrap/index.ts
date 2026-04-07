@@ -3,18 +3,11 @@ import { config as loadDotenv } from "dotenv";
 import { loadAppConfig, mergeBootstrapOptions, type AppConfig } from "./config.js";
 import { parseCliOptions } from "./cli-options.js";
 import { readBootstrapEnv } from "./env.js";
-import { AgentRuntime } from "../core/agent/runtime.js";
+import { AgentService } from "../core/agent/service.js";
 import { ContextBuilder } from "../core/context/builder.js";
 import { createPiAiClient } from "../core/llm/client.js";
 import { SessionStore } from "../core/session/store.js";
 import { ToolRegistry } from "../core/tools/registry.js";
-/**
- * Fully assembled application surface exposed after bootstrap.
- */
-export interface BootstrappedApp {
-  config: AppConfig;
-  agent: AgentRuntime;
-}
 
 /**
  * Loads `.env` into the supplied env object before bootstrap validation runs.
@@ -38,15 +31,16 @@ export const resolveAppConfig = (argv = process.argv.slice(2), env = process.env
   return loadAppConfig(options);
 };
 
-export const bootstrapApp = (argv = process.argv.slice(2), env = process.env): BootstrappedApp => {
-  const config = resolveAppConfig(argv, env);
-
+/**
+ * Fully assembled agent exposed after bootstrap.
+ */
+export const bootstrapAgent = (config: AppConfig): AgentService => {
   const llm = createPiAiClient(config.llm);
   const store = new SessionStore(config.storeRoot);
   const tools = new ToolRegistry(config.tools);
   const contextBuilder = new ContextBuilder(config.context);
 
-  const agent = new AgentRuntime({
+  const agent = new AgentService({
     cwd: config.cwd,
     store,
     tools,
@@ -55,8 +49,5 @@ export const bootstrapApp = (argv = process.argv.slice(2), env = process.env): B
     contextBuilder,
   });
 
-  return {
-    config,
-    agent,
-  };
+  return agent;
 };

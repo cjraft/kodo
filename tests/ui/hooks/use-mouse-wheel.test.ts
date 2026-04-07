@@ -3,6 +3,7 @@ import {
   detectMouseWheelDirections,
   isTerminalMouseReport,
   stripTerminalMouseReports,
+  sumMouseWheelDirections,
 } from "../../../src/ui/hooks/use-mouse-wheel.js";
 
 describe("useMouseWheel helpers", () => {
@@ -15,6 +16,11 @@ describe("useMouseWheel helpers", () => {
 
   it("ignores non-wheel mouse reports", () => {
     expect(detectMouseWheelDirections("\u001B[<0;34;12M")).toEqual([]);
+  });
+
+  it("reduces a burst of wheel reports to a net scroll delta", () => {
+    expect(sumMouseWheelDirections(["down", "down", "up"])).toBe(1);
+    expect(sumMouseWheelDirections(["up", "down"])).toBe(0);
   });
 
   it("detects stripped mouse reports that Ink forwards to useInput", () => {

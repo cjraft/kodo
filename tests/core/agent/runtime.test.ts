@@ -2,8 +2,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { AgentRuntime } from "../../../src/core/agent/runtime.js";
+import { AgentService } from "../../../src/core/agent/service.js";
 import { ContextBuilder } from "../../../src/core/context/builder.js";
+import type { AgentEvent } from "../../../src/core/agent/types.js";
 import type { LlmClient, ModelRequest, ModelResponseEvent } from "../../../src/core/llm/types.js";
 import { SessionStore } from "../../../src/core/session/store.js";
 import { ToolRegistry } from "../../../src/core/tools/registry.js";
@@ -51,7 +52,7 @@ afterEach(async () => {
 });
 
 const createRuntime = (storeRoot: string) =>
-  new AgentRuntime({
+  new AgentService({
     cwd: process.cwd(),
     store: new SessionStore(storeRoot),
     tools: new ToolRegistry(),
@@ -65,7 +66,7 @@ const createRuntime = (storeRoot: string) =>
     }),
   });
 
-describe("AgentRuntime", () => {
+describe("AgentService", () => {
   it("runs a tool-backed turn and persists it", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "kodo-runtime-"));
     tempDirs.push(dir);
@@ -73,7 +74,7 @@ describe("AgentRuntime", () => {
     const runtime = createRuntime(dir);
     const session = await runtime.loadLatestSession();
     const eventTypes: string[] = [];
-    const unsubscribe = session.subscribe((event) => {
+    const unsubscribe = session.subscribe((event: AgentEvent) => {
       eventTypes.push(event.type);
     });
 
@@ -117,6 +118,6 @@ describe("AgentRuntime", () => {
 
     expect(secondSession.id).not.toBe(firstSession.id);
     expect(secondSession.read()?.messages).toHaveLength(0);
-    expect(sessions.map((session) => session.id)).toEqual([secondSession.id, firstSession.id]);
+    expect(sessions.map((sessionMeta) => sessionMeta.id)).toEqual([secondSession.id, firstSession.id]);
   });
 });

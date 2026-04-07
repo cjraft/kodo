@@ -1,7 +1,9 @@
+import type { LaunchRunPhase } from "./shell.js";
+
 export interface AppLayoutOptions {
   stdoutWidth: number;
   stdoutHeight: number;
-  busy: boolean;
+  runPhase: LaunchRunPhase;
   commandMessageVisible: boolean;
   helpOpen: boolean;
   expandHintVisible: boolean;
@@ -25,20 +27,22 @@ const BUSY_FOOTER_RESERVED_ROWS = 2;
 export const resolveAppLayout = ({
   stdoutWidth,
   stdoutHeight,
-  busy,
+  runPhase,
   commandMessageVisible,
   helpOpen,
   expandHintVisible,
 }: AppLayoutOptions): AppLayout => {
+  const isRunning = runPhase !== "idle";
   const reservedRows =
     BASE_RESERVED_ROWS +
     (commandMessageVisible ? COMMAND_MESSAGE_RESERVED_ROWS : 0) +
     (expandHintVisible ? EXPAND_HINT_RESERVED_ROWS : 0) +
     (helpOpen ? HELP_RESERVED_ROWS : 0) +
-    (busy ? BUSY_FOOTER_RESERVED_ROWS : 0);
+    (isRunning ? BUSY_FOOTER_RESERVED_ROWS : 0);
 
   return {
-    headerCompactLayout: stdoutWidth < 88 || (busy && helpOpen) || (expandHintVisible && helpOpen),
+    headerCompactLayout:
+      stdoutWidth < 88 || (isRunning && helpOpen) || (expandHintVisible && helpOpen),
     conversationRows: Math.max(6, stdoutHeight - reservedRows),
   };
 };

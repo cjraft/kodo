@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Box, useApp } from "ink";
-import type { AgentRuntime } from "../core/agent/runtime.js";
+import type { IAgentService, AgentSession, SessionStartup } from "../core/agent/types.js";
 import { resolveExpandedOutputState } from "./app/expanded-output.js";
 import { resolveAppLayout } from "./app/layout.js";
 import { useAppPanels } from "./app/panels.js";
@@ -18,25 +18,39 @@ import { useAppCommands } from "./hooks/use-app-commands.js";
 import { useAppInput } from "./hooks/use-app-input.js";
 import { useTerminalViewport } from "./hooks/use-terminal-viewport.js";
 
+type AppMode =
+  | { type: "live" }
+  | {
+      type: "replay";
+      step: number;
+      totalSteps: number;
+      stepBackward: () => void;
+      stepForward: () => void;
+    };
+
 interface AppProps {
-  agent: AgentRuntime;
-  sessionId?: string;
+  agent?: IAgentService;
+  startup?: SessionStartup;
+  initialSession?: AgentSession;
   shell: AppShellInfo;
+  mode?: AppMode;
 }
 
-export function App({ agent, sessionId, shell }: AppProps) {
+export function App({ agent, startup, initialSession, shell, mode = { type: "live" } }: AppProps) {
   // Shell runtime.
   const { exit } = useApp();
   const viewport = useTerminalViewport();
+  const replayMode = mode.type === "replay";
 
   // Prompt composer state.
   const [input, setInput] = useState("");
 
   // Agent session state.
-  const { ready, busy, runPhase, activeToolName, messages, toolCalls, resume, run } = useAgent(
+  const { ready, runPhase, activeToolName, messages, toolCalls, resume, run } = useAgent({
+    initialSession,
     agent,
-    sessionId,
-  );
+    startup,
+  });
 
   // Expanded-output affordance state.
   const availableExpandedOutput = resolveExpandedOutputState({
@@ -72,7 +86,7 @@ export function App({ agent, sessionId, shell }: AppProps) {
   const layout = resolveAppLayout({
     stdoutWidth: viewport.width,
     stdoutHeight: viewport.height,
-    busy,
+    runPhase,
     commandMessageVisible: Boolean(commandMessage),
     helpOpen: helpPanelOpen,
     expandHintVisible: expandedOutput.expandHintVisible,
@@ -92,13 +106,17 @@ export function App({ agent, sessionId, shell }: AppProps) {
       return;
     }
 
+    if (replayMode) {
+      return;
+    }
+
     clearCommandMessage();
     await run(trimmed);
   };
 
   useAppInput({
     ready,
-    busy,
+    runPhase,
     input,
     setInput,
     exit,
@@ -109,6 +127,13 @@ export function App({ agent, sessionId, shell }: AppProps) {
     hasExpandableOutput: expandedOutput.hasExpandableOutput,
     toggleExpandedOutput,
     expandedOutputOpen: expandedOutput.expandedOutputOpen,
+    replay:
+      mode.type === "replay"
+        ? {
+            stepBackward: mode.stepBackward,
+            stepForward: mode.stepForward,
+          }
+        : undefined,
   });
 
   if (expandedOutput.expandedOutputOpen && expandedOutput.latestExpandableOutput) {
@@ -124,14 +149,17 @@ export function App({ agent, sessionId, shell }: AppProps) {
         hasExpandableOutput={expandedOutput.hasExpandableOutput}
         expandedOutputOpen={expandedOutput.expandedOutputOpen}
       />
-      <CommandHelpPanel open={helpPanelOpen} commands={commands} />
-      <ThinkingIndicator busy={busy} runPhase={runPhase} activeToolName={activeToolName} />
+      <CommandHelpPanel open={!replayMode && helpPanelOpen} commands={commands} />
+      <ThinkingIndicator runPhase={runPhase} activeToolName={activeToolName} />
       <CommandComposer
         ready={ready}
-        busy={busy}
         input={input}
         runPhase={runPhase}
         activeToolName={activeToolName}
+        inputEnabled={!replayMode}
+        placeholderText={
+          replayMode ? `Replay ${mode.step}/${mode.totalSteps} · j previous · k next` : undefined
+        }
       />
     </Box>
   );

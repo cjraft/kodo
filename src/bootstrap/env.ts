@@ -7,6 +7,7 @@ export interface BootstrapCommonOptions {
   cwd?: string;
   storeRoot?: string;
   skillsRoot?: string;
+  debugReplay?: boolean;
   themeAccent?: string;
   provider?: string;
   apiKey?: string;

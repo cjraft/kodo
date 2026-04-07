@@ -13,6 +13,7 @@ interface FocusHeaderProps {
  */
 export function FocusHeader({ compactLayout, shell }: FocusHeaderProps) {
   const theme = useTheme();
+  const hintLabel = shell.hintLabel ?? "/help for commands";
 
   return (
     <Box
@@ -42,7 +43,7 @@ export function FocusHeader({ compactLayout, shell }: FocusHeaderProps) {
             <Text color="white">{shell.modelLabel}</Text>
           </Box>
           <Text color={theme.accentColor} dimColor={compactLayout}>
-            /help for commands
+            {hintLabel}
           </Text>
         </Box>
 

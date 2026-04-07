@@ -1,9 +1,10 @@
+import type { LaunchRunPhase } from "../app/shell.js";
 import { useInput } from "ink";
 import { isTerminalMouseReport } from "./use-mouse-wheel.js";
 
 interface UseAppInputOptions {
   ready: boolean;
-  busy: boolean;
+  runPhase: LaunchRunPhase;
   input: string;
   setInput: (next: string | ((current: string) => string)) => void;
   exit: () => void;
@@ -12,6 +13,10 @@ interface UseAppInputOptions {
   hasExpandableOutput: boolean;
   toggleExpandedOutput: () => void;
   expandedOutputOpen: boolean;
+  replay?: {
+    stepBackward: () => void;
+    stepForward: () => void;
+  };
 }
 
 /**
@@ -20,7 +25,7 @@ interface UseAppInputOptions {
  */
 export const useAppInput = ({
   ready,
-  busy,
+  runPhase,
   input,
   setInput,
   exit,
@@ -29,6 +34,7 @@ export const useAppInput = ({
   hasExpandableOutput,
   toggleExpandedOutput,
   expandedOutputOpen,
+  replay,
 }: UseAppInputOptions) => {
   useInput((character, key) => {
     if (isTerminalMouseReport(character)) {
@@ -58,7 +64,21 @@ export const useAppInput = ({
       return;
     }
 
-    if (busy || !ready) {
+    if (replay) {
+      if (character === "j" || character === "J") {
+        replay.stepBackward();
+        return;
+      }
+
+      if (character === "k" || character === "K") {
+        replay.stepForward();
+        return;
+      }
+
+      return;
+    }
+
+    if (runPhase !== "idle" || !ready) {
       return;
     }
 

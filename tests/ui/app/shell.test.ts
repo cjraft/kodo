@@ -14,9 +14,9 @@ describe("app shell helpers", () => {
   });
 
   it("maps runtime state to readable phase labels", () => {
-    expect(getPhaseLabel(false, "idle")).toBe("standby");
-    expect(getPhaseLabel(true, "thinking")).toBe("planning");
-    expect(getPhaseLabel(true, "tool-running")).toBe("toolchain");
-    expect(getPhaseLabel(true, "streaming")).toBe("transmitting");
+    expect(getPhaseLabel("idle")).toBe("standby");
+    expect(getPhaseLabel("thinking")).toBe("planning");
+    expect(getPhaseLabel("tool-running")).toBe("toolchain");
+    expect(getPhaseLabel("streaming")).toBe("transmitting");
   });
 });

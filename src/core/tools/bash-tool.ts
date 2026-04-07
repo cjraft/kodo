@@ -48,6 +48,7 @@ const DANGEROUS_PATTERNS = [
 
 const ANSI_PATTERN = /\u001B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\u0007]*(?:\u0007|\u001B\\))/g;
 const INVISIBLE_CONTROL_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+const OUTPUT_TRUNCATION_THRESHOLD_CHARS = 2_000;
 
 const normalizeCommand = (input: string | BashToolInput) => {
   if (typeof input === "string" || input instanceof String) {
@@ -77,10 +78,13 @@ const collectVisibleOutput = (stdout: string, stderr: string) =>
     .join("\n");
 
 /**
- * Keeps a readable head/tail preview when output is too large to store fully.
+ * Keeps small outputs intact and only builds a head/tail preview for larger payloads.
  */
 const truncateOutput = (value: string, maxOutputChars: number) => {
-  if (value.length <= maxOutputChars) {
+  if (
+    value.length <= OUTPUT_TRUNCATION_THRESHOLD_CHARS ||
+    value.length <= maxOutputChars
+  ) {
     return value;
   }
 

@@ -2,9 +2,12 @@ import React from "react";
 import os from "node:os";
 import { createRequire } from "node:module";
 import { render } from "ink";
-import { bootstrapApp } from "./bootstrap/index.js";
+import { bootstrapAgent, resolveAppConfig } from "./bootstrap/index.js";
+import { SessionStore } from "./core/session/store.js";
+import { ReplayRuntime } from "./core/replay/runtime.js";
 import { App } from "./ui/App.js";
 import { formatHomeRelativePath, type AppShellInfo } from "./ui/app/shell.js";
+import { ReplayRoot } from "./ui/replay/ReplayRoot.js";
 import { disableTerminalMouseTracking } from "./ui/terminal/mouse-tracking.js";
 import { ThemeProvider } from "./ui/theme/context.js";
 
@@ -22,7 +25,7 @@ disableTerminalMouseTracking((value) => {
   process.stdout.write(value);
 });
 
-const { agent, config } = bootstrapApp();
+const config = resolveAppConfig();
 
 const shell: AppShellInfo = {
   version: packageJson.version,
@@ -30,8 +33,26 @@ const shell: AppShellInfo = {
   directoryLabel: formatHomeRelativePath(config.cwd, os.homedir()),
 };
 
+const liveShell: AppShellInfo = {
+  ...shell,
+  hintLabel: "/help for commands",
+};
+
+const replayShell: AppShellInfo = {
+  ...shell,
+  modelLabel: `replay debugger · ${shell.modelLabel}`.trim(),
+  hintLabel: "j/k to step · Enter to open session",
+};
+
 render(
   <ThemeProvider theme={config.ui}>
-    <App agent={agent} shell={shell} />
+    {config.debug.replay ? (
+      <ReplayRoot
+        runtime={new ReplayRuntime(new SessionStore(config.storeRoot))}
+        shell={replayShell}
+      />
+    ) : (
+      <App agent={bootstrapAgent(config)} startup={{ type: "create" }} shell={liveShell} />
+    )}
   </ThemeProvider>,
 );

@@ -2,6 +2,7 @@ export interface AppShellInfo {
   version: string;
   modelLabel: string;
   directoryLabel: string;
+  hintLabel?: string;
 }
 
 export type LaunchRunPhase = "idle" | "thinking" | "streaming" | "tool-running";

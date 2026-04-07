@@ -6,6 +6,7 @@ import {
 } from "../terminal/mouse-tracking.js";
 
 const sgrMousePattern = /(?:\u001B)?\[<(\d+);(\d+);(\d+)([mM])/g;
+const mouseWheelFlushDelayMs = 16;
 
 export type MouseWheelDirection = "up" | "down";
 
@@ -45,6 +46,9 @@ export const detectMouseWheelDirections = (buffer: string) => {
   return directions;
 };
 
+export const sumMouseWheelDirections = (directions: MouseWheelDirection[]) =>
+  directions.reduce((score, direction) => score + (direction === "down" ? 1 : -1), 0);
+
 const getMouseWheelBufferRemainder = (buffer: string) => {
   let lastMatchEnd = 0;
 
@@ -81,6 +85,8 @@ export const useMouseWheel = ({ enabled, onScrollUp, onScrollDown }: UseMouseWhe
   const bufferRef = useRef("");
   const onScrollUpRef = useRef(onScrollUp);
   const onScrollDownRef = useRef(onScrollDown);
+  const pendingDeltaRef = useRef(0);
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     onScrollUpRef.current = onScrollUp;
@@ -95,6 +101,22 @@ export const useMouseWheel = ({ enabled, onScrollUp, onScrollDown }: UseMouseWhe
       return;
     }
 
+    const flushPendingWheelDelta = () => {
+      flushTimerRef.current = null;
+      const delta = pendingDeltaRef.current;
+      pendingDeltaRef.current = 0;
+
+      if (delta === 0) {
+        return;
+      }
+
+      const scroll = delta > 0 ? onScrollDownRef.current : onScrollUpRef.current;
+
+      for (let index = 0; index < Math.abs(delta); index += 1) {
+        scroll();
+      }
+    };
+
     const disableMouseTracking = () => {
       disableTerminalMouseTracking(write);
     };
@@ -104,12 +126,13 @@ export const useMouseWheel = ({ enabled, onScrollUp, onScrollDown }: UseMouseWhe
 
     const handleData = (chunk: string | Buffer) => {
       bufferRef.current += chunk.toString();
+      const delta = sumMouseWheelDirections(detectMouseWheelDirections(bufferRef.current));
 
-      for (const direction of detectMouseWheelDirections(bufferRef.current)) {
-        if (direction === "up") {
-          onScrollUpRef.current();
-        } else {
-          onScrollDownRef.current();
+      if (delta !== 0) {
+        pendingDeltaRef.current += delta;
+
+        if (!flushTimerRef.current) {
+          flushTimerRef.current = setTimeout(flushPendingWheelDelta, mouseWheelFlushDelayMs);
         }
       }
 
@@ -121,6 +144,11 @@ export const useMouseWheel = ({ enabled, onScrollUp, onScrollDown }: UseMouseWhe
     return () => {
       stdin.off("data", handleData);
       process.off("exit", disableMouseTracking);
+      if (flushTimerRef.current) {
+        clearTimeout(flushTimerRef.current);
+        flushTimerRef.current = null;
+      }
+      pendingDeltaRef.current = 0;
       bufferRef.current = "";
       disableMouseTracking();
     };

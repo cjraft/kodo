@@ -49,16 +49,16 @@ export function getRandomLoadingMessage(): string {
 }
 
 interface ThinkingIndicatorProps {
-  busy: boolean;
   runPhase: LaunchRunPhase;
   activeToolName: string | null;
 }
 
-export function ThinkingIndicator({ busy, runPhase, activeToolName }: ThinkingIndicatorProps) {
+export function ThinkingIndicator({ runPhase, activeToolName }: ThinkingIndicatorProps) {
   const theme = useTheme();
   const [message, setMessage] = useState(getRandomLoadingMessage);
   const busyLabel = getBusyLabel(runPhase, activeToolName);
-  const shouldAnimate = busy && (runPhase === "thinking" || runPhase === "tool-running");
+  const isRunning = runPhase !== "idle";
+  const shouldAnimate = isRunning && (runPhase === "thinking" || runPhase === "tool-running");
 
   useEffect(() => {
     if (runPhase === "tool-running" || !shouldAnimate) {
@@ -69,7 +69,7 @@ export function ThinkingIndicator({ busy, runPhase, activeToolName }: ThinkingIn
     return () => clearInterval(id);
   }, [runPhase, shouldAnimate]);
 
-  if (!busy) {
+  if (!isRunning) {
     return null;
   }
 

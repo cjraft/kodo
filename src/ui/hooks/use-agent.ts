@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { AgentEvent, AgentSession, AgentSessionView } from "../../core/agent/types.js";
-import type { AgentRuntime } from "../../core/agent/runtime.js";
+import type {
+  AgentEvent,
+  IAgentService,
+  AgentSession,
+  AgentSessionView,
+  SessionStartup,
+} from "../../core/agent/types.js";
 import type { SessionMeta } from "../../core/session/types.js";
 
 type RunPhase = "idle" | "thinking" | "streaming" | "tool-running";
@@ -49,9 +54,14 @@ const findResumeTarget = (
  * React-facing adapter for the agent service. It translates session events into
  * stable UI state, including optimistic streaming text while a run is active.
  */
-export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
+interface UseAgentOptions {
+  initialSession?: AgentSession;
+  agent?: IAgentService;
+  startup?: SessionStartup;
+}
+
+export const useAgent = ({ initialSession, agent, startup }: UseAgentOptions) => {
   const [ready, setReady] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [runPhase, setRunPhase] = useState<RunPhase>("idle");
   const [activeToolName, setActiveToolName] = useState<string | null>(null);
   const [status, setStatus] = useState("Booting...");
@@ -80,6 +90,7 @@ export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
 
       if (event.type === "status") {
         setStatus(event.text);
+        refreshSessionView();
       }
 
       if (event.type === "run-start") {
@@ -114,7 +125,6 @@ export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
       }
 
       if (event.type === "done") {
-        setBusy(false);
         setRunPhase("idle");
         setActiveToolName(null);
         streamingMessageCreatedAtRef.current = null;
@@ -123,7 +133,6 @@ export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
       }
 
       if (event.type === "error") {
-        setBusy(false);
         setRunPhase("idle");
         setActiveToolName(null);
         streamingMessageCreatedAtRef.current = null;
@@ -134,7 +143,6 @@ export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
 
     unsubscribeRef.current = nextSession.subscribe(handleEvent);
     setActiveSession(nextSession);
-    setBusy(false);
     setRunPhase("idle");
     setActiveToolName(null);
     streamingMessageCreatedAtRef.current = null;
@@ -157,20 +165,32 @@ export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
     [],
   );
 
+  const startupSessionId = startup?.type === "load" ? startup.sessionId : undefined;
+
   useEffect(() => {
     setReady(false);
     let active = true;
 
     const loadSession = async () => {
-      const nextSession = sessionId
-        ? await agent.loadSession(sessionId)
-        : await agent.createSession();
+      if (initialSession) {
+        bindSession(initialSession, "loaded");
+        return;
+      }
+
+      if (!agent || !startup) {
+        throw new Error("Session source is not configured.");
+      }
+
+      const nextSession =
+        startup.type === "load"
+          ? await agent.loadSession(startup.sessionId)
+          : await agent.createSession();
 
       if (!active) {
         return;
       }
 
-      bindSession(nextSession, sessionId ? "loaded" : "started");
+      bindSession(nextSession, startup.type === "load" ? "loaded" : "started");
     };
 
     loadSession().catch((error: Error) => {
@@ -186,7 +206,7 @@ export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
       unsubscribeRef.current();
       unsubscribeRef.current = () => {};
     };
-  }, [agent, sessionId]);
+  }, [initialSession, agent, startup?.type, startupSessionId]);
 
   const messages = session?.messages ?? [];
   const visibleMessages =
@@ -204,7 +224,6 @@ export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
 
   return {
     ready,
-    busy,
     runPhase,
     activeToolName,
     status,
@@ -215,6 +234,9 @@ export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
     resume: async (query?: string) => {
       try {
         setStatus("Resolving session...");
+        if (!agent) {
+          throw new Error("Resume is unavailable in the current mode.");
+        }
         const sessions = await agent.listSessions();
         const targetSessionId = findResumeTarget(sessions, activeSession?.id ?? null, query);
         const nextSession = await agent.loadSession(targetSessionId);
@@ -228,7 +250,6 @@ export const useAgent = (agent: AgentRuntime, sessionId?: string) => {
         throw new Error("Agent session is not ready.");
       }
 
-      setBusy(true);
       setRunPhase("thinking");
       setActiveToolName(null);
       return activeSession.run(input);

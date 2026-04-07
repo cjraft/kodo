@@ -8,7 +8,7 @@ describe("app layout helpers", () => {
       resolveAppLayout({
         stdoutWidth: 120,
         stdoutHeight: 36,
-        busy: true,
+        runPhase: "thinking",
         commandMessageVisible: true,
         helpOpen: true,
         expandHintVisible: false,

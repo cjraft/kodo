@@ -3,13 +3,13 @@ import type { LlmClient } from "../llm/types.js";
 import { SessionStore } from "../session/store.js";
 import { ToolRegistry } from "../tools/registry.js";
 import { AgentSession } from "../session/session.js";
-import type { AgentLoopConfig } from "./types.js";
+import type { AgentLoopConfig, IAgentService } from "./types.js";
 
 /**
  * Runtime dependencies assembled during bootstrap. The agent layer consumes
  * typed collaborators instead of reading config or env directly.
  */
-export interface AgentRuntimeOptions {
+export interface AgentServiceOptions {
   cwd: string;
   store: SessionStore;
   tools: ToolRegistry;
@@ -21,8 +21,8 @@ export interface AgentRuntimeOptions {
 /**
  * Root runtime responsible for creating sessions on demand.
  */
-export class AgentRuntime {
-  constructor(private readonly options: AgentRuntimeOptions) {}
+export class AgentService implements IAgentService {
+  constructor(private readonly options: AgentServiceOptions) {}
 
   /**
    * Starts a brand-new persisted session.

@@ -1,7 +1,7 @@
 import type { LaunchRunPhase } from "./shell.js";
 
-export const getPhaseLabel = (busy: boolean, runPhase: LaunchRunPhase) => {
-  if (!busy) {
+export const getPhaseLabel = (runPhase: LaunchRunPhase) => {
+  if (runPhase === "idle") {
     return "standby";
   }
 

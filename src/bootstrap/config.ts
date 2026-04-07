@@ -18,6 +18,9 @@ export interface AppConfig {
   cwd: string;
   storeRoot: string;
   skillsRoot: string;
+  debug: {
+    replay: boolean;
+  };
   ui: UiTheme;
   agent: {
     loop: AgentLoopConfig;
@@ -37,6 +40,16 @@ export interface BootstrapOptions {
 
 const mergeDefined = <T extends object>(...sources: Array<Partial<T> | undefined>): T =>
   Object.assign({}, ...sources);
+
+const buildReplayLlmPlaceholder = (): PiAiClientConfig => ({
+  providerId: "replay",
+  apiKey: "replay",
+  baseUrl: "https://replay.invalid",
+  model: "replay",
+  reasoning: undefined,
+  maxOutputTokens: 1_024,
+  contextWindow: 8_192,
+});
 
 /**
  * Applies the single bootstrap precedence rule: CLI overrides environment input.
@@ -59,7 +72,18 @@ export const loadAppConfig = (
   },
 ): AppConfig => {
   const cwd = options.common.cwd?.trim() || runtime.cwd;
-  const llm = buildLlmConfig(options);
+  const debugReplay = options.common.debugReplay ?? false;
+  const llm = (() => {
+    try {
+      return buildLlmConfig(options);
+    } catch (error) {
+      if (!debugReplay) {
+        throw error;
+      }
+
+      return buildReplayLlmPlaceholder();
+    }
+  })();
   const context: ContextBuilderConfig = resolveContextBuilderConfig(
     {
       maxInputTokens: options.common.maxInputTokens,
@@ -87,6 +111,9 @@ export const loadAppConfig = (
     cwd,
     storeRoot: options.common.storeRoot?.trim() || path.join(cwd, ".kodo"),
     skillsRoot: options.common.skillsRoot?.trim() || path.join(runtime.homeDir, ".kodo", "skills"),
+    debug: {
+      replay: debugReplay,
+    },
     ui,
     agent,
     context,

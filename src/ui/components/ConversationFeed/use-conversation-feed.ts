@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import type { Message, ToolCallRecord } from "../../../core/session/types.js";
 import { useMouseWheel } from "../../hooks/use-mouse-wheel.js";
 import {
@@ -6,6 +6,8 @@ import {
   estimateConversationEntryRows,
   resolveConversationLayout,
   selectVisibleConversationSlice,
+  type ConversationEntry,
+  type ConversationLayout,
 } from "../../transcript/model.js";
 
 const defaultScrollStepRows = 3;
@@ -21,13 +23,37 @@ export interface UseConversationFeedOptions {
   stickyThresholdRows?: number;
 }
 
-const findLatestExpandedEntryId = (messages: Message[]) =>
-  [...messages].reverse().find((message) => message.role === "assistant" || message.role === "tool")
-    ?.id ?? null;
+/**
+ * Keeps the newest model output expanded only when it fits inside the current
+ * transcript viewport. Oversized inline expansions make row-based scrolling
+ * appear stuck because the same message dominates every visible slice.
+ */
+export const resolveExpandedEntryId = (
+  entries: ConversationEntry[],
+  layout: ConversationLayout,
+  maxRows: number,
+) => {
+  const latestExpandableEntry = [...entries]
+    .reverse()
+    .find(
+      (entry) =>
+        entry.kind === "message" &&
+        (entry.message.role === "assistant" || entry.message.role === "tool"),
+    );
+
+  if (!latestExpandableEntry) {
+    return null;
+  }
+
+  const expandedRows = estimateConversationEntryRows(latestExpandableEntry, layout, {
+    expanded: true,
+  });
+
+  return expandedRows <= maxRows ? latestExpandableEntry.id : null;
+};
 
 /**
- * Owns the transcript viewport for the main conversation area, including
- * mouse-wheel scrolling and sticky-bottom behavior while new output streams in.
+ * Manages the scrollable conversation feed with sticky-to-bottom behavior.
  */
 export const useConversationFeed = ({
   width,
@@ -38,106 +64,122 @@ export const useConversationFeed = ({
   scrollStepRows = defaultScrollStepRows,
   stickyThresholdRows = defaultStickyThresholdRows,
 }: UseConversationFeedOptions) => {
-  const entries = buildConversationEntries(messages, toolCalls);
+  const entries = useMemo(() => buildConversationEntries(messages, toolCalls), [messages, toolCalls]);
   const layout = resolveConversationLayout(width);
-  const latestExpandedEntryId = findLatestExpandedEntryId(messages);
-  const [state, setState] = useState({
-    scrollBackRows: 0,
-    stickyToBottom: true,
-  });
-  const initialSlice = selectVisibleConversationSlice(entries, maxRows, width, 0, {
-    expandedMessageId: latestExpandedEntryId ? `message:${latestExpandedEntryId}` : null,
-  });
-  const totalRowsRef = useRef(initialSlice.totalRows);
-  const slice = selectVisibleConversationSlice(entries, maxRows, width, state.scrollBackRows, {
-    expandedMessageId: latestExpandedEntryId ? `message:${latestExpandedEntryId}` : null,
-  });
-  const getEntryStepRows = (entryId?: string) => {
-    const entry = entryId ? entries.find((candidate) => candidate.id === entryId) : undefined;
+  const expandedMessageId = useMemo(
+    () => resolveExpandedEntryId(entries, layout, maxRows),
+    [entries, layout, maxRows],
+  );
 
-    if (!entry) {
-      return scrollStepRows;
-    }
-
-    return Math.max(
-      scrollStepRows,
-      estimateConversationEntryRows(entry, layout, {
-        expanded: entry.kind === "message" && entry.id === `message:${latestExpandedEntryId}`,
-      }),
-    );
-  };
-
-  useEffect(() => {
-    const previousTotalRows = totalRowsRef.current;
-    const totalRowsDelta = slice.totalRows - previousTotalRows;
-    totalRowsRef.current = slice.totalRows;
-
-    setState((current) => {
-      const maxScrollBackRows = Math.max(0, slice.totalRows - maxRows);
-
-      if (maxScrollBackRows === 0) {
-        return {
-          scrollBackRows: 0,
-          stickyToBottom: true,
-        };
-      }
-
-      if (totalRowsDelta > 0) {
-        if (current.stickyToBottom) {
-          return {
-            scrollBackRows: 0,
-            stickyToBottom: true,
-          };
-        }
-
-        return {
-          scrollBackRows: Math.min(maxScrollBackRows, current.scrollBackRows + totalRowsDelta),
-          stickyToBottom: false,
-        };
-      }
-
-      const clampedScrollBackRows = Math.min(current.scrollBackRows, maxScrollBackRows);
-      const shouldStick = current.stickyToBottom || clampedScrollBackRows <= stickyThresholdRows;
-
+  // Calculate row positions for all entries
+  const rowWindows = useMemo(() => {
+    let totalRows = 0;
+    const windows = entries.map((entry) => {
+      const isExpanded = entry.kind === "message" && entry.id === expandedMessageId;
+      const rows = estimateConversationEntryRows(entry, layout, { expanded: isExpanded });
+      const startRow = totalRows;
+      totalRows += rows;
       return {
-        scrollBackRows: shouldStick ? 0 : clampedScrollBackRows,
-        stickyToBottom: shouldStick,
+        entry,
+        rows,
+        startRow,
+        endRow: totalRows,
       };
     });
-  }, [maxRows, slice.totalRows, stickyThresholdRows]);
+    return { windows, totalRows };
+  }, [entries, layout, expandedMessageId]);
+
+  const { totalRows } = rowWindows;
+  const maxScrollBackRows = Math.max(0, totalRows - maxRows);
+
+  // scrollBackRows: how many rows we've scrolled back from the bottom
+  // 0 = showing latest content (at bottom)
+  // maxScrollBackRows = showing oldest content (at top)
+  const [scrollBackRows, setScrollBackRows] = useState(0);
+  const [stickyToBottom, setStickyToBottom] = useState(true);
+
+  // Keep refs for latest values in callbacks
+  const scrollBackRowsRef = useRef(scrollBackRows);
+  const stickyRef = useRef(stickyToBottom);
+  const maxScrollBackRowsRef = useRef(maxScrollBackRows);
+
+  useEffect(() => {
+    scrollBackRowsRef.current = scrollBackRows;
+  }, [scrollBackRows]);
+
+  useEffect(() => {
+    stickyRef.current = stickyToBottom;
+  }, [stickyToBottom]);
+
+  useEffect(() => {
+    maxScrollBackRowsRef.current = maxScrollBackRows;
+  }, [maxScrollBackRows]);
+
+  // Handle content growth: if sticky, stay at bottom
+  useEffect(() => {
+    if (maxScrollBackRows === 0) {
+      setScrollBackRows(0);
+      setStickyToBottom(true);
+      return;
+    }
+
+    if (stickyRef.current) {
+      // Stay at bottom
+      setScrollBackRows(0);
+    } else {
+      // Clamp to valid range
+      setScrollBackRows((current) => Math.min(current, maxScrollBackRows));
+    }
+  }, [totalRows, maxRows, maxScrollBackRows]);
+
+  const canScroll = totalRows > maxRows;
+
+  const scrollUp = useCallback(() => {
+    setScrollBackRows((current) => {
+      const maxScroll = maxScrollBackRowsRef.current;
+      const newScrollBack = Math.min(maxScroll, current + scrollStepRows);
+      
+      // Break sticky when scrolling up
+      if (newScrollBack > 0 && stickyRef.current) {
+        setStickyToBottom(false);
+      }
+      
+      return newScrollBack;
+    });
+  }, [scrollStepRows]);
+
+  const scrollDown = useCallback(() => {
+    setScrollBackRows((current) => {
+      const newScrollBack = Math.max(0, current - scrollStepRows);
+      
+      // Check if should become sticky
+      if (newScrollBack <= stickyThresholdRows) {
+        setStickyToBottom(true);
+        return 0;
+      }
+      
+      return newScrollBack;
+    });
+  }, [scrollStepRows, stickyThresholdRows]);
 
   useMouseWheel({
-    enabled: enabled && slice.totalRows > maxRows,
-    onScrollUp: () => {
-      setState((current) => {
-        const maxScrollBackRows = Math.max(0, slice.totalRows - maxRows);
-        const stepRows = getEntryStepRows(slice.entries[0]?.id);
-        const nextScrollBackRows = Math.min(maxScrollBackRows, current.scrollBackRows + stepRows);
+    enabled: enabled && canScroll,
+    onScrollUp: scrollUp,
+    onScrollDown: scrollDown,
+  });
 
-        return {
-          scrollBackRows: nextScrollBackRows,
-          stickyToBottom: current.stickyToBottom && nextScrollBackRows <= stickyThresholdRows,
-        };
-      });
-    },
-    onScrollDown: () => {
-      setState((current) => {
-        const stepRows = getEntryStepRows(slice.entries.at(-1)?.id);
-        const nextScrollBackRows = Math.max(0, current.scrollBackRows - stepRows);
-        const shouldStick = nextScrollBackRows <= stickyThresholdRows;
+  // Calculate actual scroll back (respecting sticky)
+  const effectiveScrollBackRows = stickyToBottom ? 0 : Math.min(scrollBackRows, maxScrollBackRows);
 
-        return {
-          scrollBackRows: shouldStick ? 0 : nextScrollBackRows,
-          stickyToBottom: shouldStick,
-        };
-      });
-    },
+  // Select visible entries
+  const slice = selectVisibleConversationSlice(entries, maxRows, width, effectiveScrollBackRows, {
+    expandedMessageId,
   });
 
   return {
     entries: slice.entries,
     hasOlder: slice.hasOlder,
     hasNewer: slice.hasNewer,
-    stickyToBottom: state.stickyToBottom,
+    stickyToBottom,
   };
 };

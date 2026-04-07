@@ -7,6 +7,7 @@ export interface CliOptions {
   cwd?: string;
   storeRoot?: string;
   skillsRoot?: string;
+  debugReplay?: boolean;
   themeAccent?: string;
   provider?: string;
   apiKey?: string;
@@ -45,6 +46,7 @@ export const parseCliOptions = (argv: string[]): CliOptions => {
     .option("--cwd <path>")
     .option("--store-root <path>")
     .option("--skills-root <path>")
+    .option("--debug-replay")
     .option("--theme-accent <color>")
     .option("--provider <provider>")
     .option("--api-key <key>")

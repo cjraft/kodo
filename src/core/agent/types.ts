@@ -1,4 +1,4 @@
-import type { Message, SessionSnapshot, ToolCallRecord } from "../session/types.js";
+import type { Message, SessionMeta, SessionSnapshot, ToolCallRecord } from "../session/types.js";
 
 /**
  * Controls how many model -> tool -> model turns a single run may perform
@@ -27,6 +27,20 @@ export interface AgentSession {
   read(): AgentSessionView | null;
   subscribe(listener: AgentListener): () => void;
   run(input: string): Promise<void>;
+}
+
+/**
+ * Startup policy used by the UI when it needs to bootstrap an initial session.
+ */
+export type SessionStartup = { type: "create" } | { type: "load"; sessionId: string };
+
+/**
+ * UI-facing session service boundary implemented by live and replay runtimes.
+ */
+export interface IAgentService {
+  createSession(): Promise<AgentSession>;
+  loadSession(sessionId: string): Promise<AgentSession>;
+  listSessions(): Promise<SessionMeta[]>;
 }
 
 /**

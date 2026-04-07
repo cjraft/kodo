@@ -32,7 +32,11 @@ export function ExpandedContentPanel({ entry }: ExpandedContentPanelProps) {
           {viewer.hasMoreAbove ? " · more above" : ""}
           {viewer.hasMoreBelow ? " · more below" : ""}
         </Text>
-        <Text color={theme.mutedColor}>Use the mouse wheel to scroll.</Text>
+        <Text color={theme.mutedColor}>
+          Wheel {viewer.scrollStepRows} lines · <Text color={theme.accentColor}>j/k</Text> fine ·{" "}
+          <Text color={theme.accentColor}>Space/b</Text> page ·{" "}
+          <Text color={theme.accentColor}>g/G</Text> jump
+        </Text>
         <Text color={theme.mutedColor}>
           Press <Text color={theme.accentColor}>Esc</Text> or{" "}
           <Text color={theme.accentColor}>Ctrl+O</Text> to return.

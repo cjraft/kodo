@@ -43,4 +43,13 @@ describe("resolveAppConfig", () => {
     });
     expect(config.ui.accentColor).toBe("#c9a7ff");
   });
+
+  it("enables replay debug mode from the CLI", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "kodo-bootstrap-replay-"));
+    tempDirs.push(dir);
+    const config = resolveAppConfig(["--cwd", dir, "--debug-replay"], {});
+
+    expect(config.debug.replay).toBe(true);
+    expect(config.llm.model).toBe("replay");
+  });
 });

@@ -7,15 +7,16 @@ import { useTheme } from "../theme/context.js";
 
 interface CommandComposerProps {
   ready: boolean;
-  busy: boolean;
   input: string;
   runPhase: LaunchRunPhase;
   activeToolName: string | null;
+  inputEnabled?: boolean;
+  placeholderText?: string;
 }
 
 const promptGlyph = ">";
 const cursorGlyph = "▌";
-const placeholderText = "Type your message or /help";
+const defaultPlaceholderText = "Type your message or /help";
 const fitPromptText = (content: string, maxLength: number) => {
   if (content.length <= maxLength) {
     return content;
@@ -34,17 +35,19 @@ const padLine = (content: string, width: number) => content.padEnd(Math.max(0, w
  */
 export function CommandComposer({
   ready,
-  busy,
   input,
   runPhase,
   activeToolName,
+  inputEnabled = true,
+  placeholderText = defaultPlaceholderText,
 }: CommandComposerProps) {
   const theme = useTheme();
   const viewport = useTerminalViewport();
   const [cursorVisible, setCursorVisible] = useState(true);
+  const isRunning = runPhase !== "idle";
 
   useEffect(() => {
-    if (!ready || busy) {
+    if (!ready || isRunning || !inputEnabled) {
       setCursorVisible(false);
       return;
     }
@@ -52,21 +55,21 @@ export function CommandComposer({
     setCursorVisible(true);
     const intervalId = setInterval(() => setCursorVisible((current) => !current), 520);
     return () => clearInterval(intervalId);
-  }, [busy, ready]);
+  }, [inputEnabled, isRunning, ready]);
 
   const hasUserInput = input.length > 0;
-  const visibleCursor = ready && !busy && cursorVisible;
+  const visibleCursor = ready && !isRunning && inputEnabled && cursorVisible;
   const innerWidth = Math.max(1, viewport.width - 4);
   const contentWidth = Math.max(1, innerWidth - (promptGlyph.length + 1));
   const cursorSlotWidth = 1;
   const textWidth = Math.max(1, contentWidth - cursorSlotWidth);
   const busyLabel = runPhase === "thinking" ? "" : getBusyLabel(runPhase, activeToolName);
-  const inputText = busy ? busyLabel : input;
+  const inputText = isRunning ? busyLabel : input;
   const visibleInput = fitPromptText(inputText, textWidth);
   const visiblePlaceholder = fitPromptText(placeholderText, textWidth);
   const remainingWidth = Math.max(
     0,
-    busy
+    isRunning
       ? contentWidth - visibleInput.length
       : hasUserInput
         ? textWidth - visibleInput.length
@@ -81,17 +84,17 @@ export function CommandComposer({
           {promptGlyph}
         </Text>
         <Text backgroundColor={theme.surfaceColor}> </Text>
-        {busy || hasUserInput ? (
+        {isRunning || hasUserInput ? (
           <Text backgroundColor={theme.surfaceColor} color="white">
             {visibleInput}
           </Text>
         ) : null}
-        {ready && !busy ? (
+        {ready && !isRunning && inputEnabled ? (
           <Text backgroundColor={theme.surfaceColor} color={theme.accentColor}>
             {visibleCursor ? cursorGlyph : " "}
           </Text>
         ) : null}
-        {!busy && !hasUserInput ? (
+        {!isRunning && !hasUserInput ? (
           <Text backgroundColor={theme.surfaceColor} color={theme.mutedColor}>
             {visiblePlaceholder}
           </Text>
