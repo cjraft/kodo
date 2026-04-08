@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import { readBootstrapEnv } from "../../src/bootstrap/env.js";
 
 describe("readBootstrapEnv", () => {
-  it("maps unified MODEL_* variables into bootstrap common options", () => {
+  it("maps unified KODO_MODEL_* variables into bootstrap common options", () => {
     const env = readBootstrapEnv({
-      MODEL_PROVIDER: "openai",
-      MODEL_API_KEY: "openai-key",
-      MODEL_BASE_URL: "https://api.openai.com/v1",
-      MODEL_NAME: "gpt-4.1-mini",
-      MODEL_REASONING_EFFORT: "medium",
-      MODEL_MAX_OUTPUT_TOKENS: "2048",
-      MODEL_CONTEXT_WINDOW: "16384",
+      KODO_MODEL_PROVIDER: "openai",
+      KODO_MODEL_API_KEY: "openai-key",
+      KODO_MODEL_BASE_URL: "https://api.openai.com/v1",
+      KODO_MODEL_NAME: "gpt-4.1-mini",
+      KODO_MODEL_REASONING_EFFORT: "medium",
+      KODO_MODEL_MAX_OUTPUT_TOKENS: "2048",
+      KODO_MODEL_CONTEXT_WINDOW: "16384",
     });
 
     expect(env.common).toMatchObject({
@@ -27,7 +27,7 @@ describe("readBootstrapEnv", () => {
 
   it("ignores removed legacy provider variables", () => {
     const env = readBootstrapEnv({
-      KODO_PROVIDER: "openai",
+      MODEL_PROVIDER: "openai",
       OPENAI_API_KEY: "legacy-key",
       OPENAI_BASE_URL: "https://api.openai.com/v1",
       OPENAI_MODEL: "gpt-4.1-mini",

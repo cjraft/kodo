@@ -12,7 +12,7 @@
 **A terminal-native coding agent that lives in your command line.**
 
 <p>
-  <a href="https://www.npmjs.com/package/kodo"><img src="https://img.shields.io/npm/v/kodo?style=flat-square&color=0EA5E9" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/@cjraft/kodo"><img src="https://img.shields.io/npm/v/%40cjraft%2Fkodo?style=flat-square&color=0EA5E9" alt="npm version" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/node-%3E%3D22-339933?style=flat-square&logo=nodedotjs" alt="Node.js" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-10B981?style=flat-square" alt="License: MIT" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript" alt="TypeScript" /></a>
@@ -39,6 +39,9 @@ Kodo is a local-first coding agent that runs in your terminal, talks to LLMs, an
 | -------------------------- | --------------------------------------------------------------------------- |
 | 🖥️ **Ink TUI**             | Responsive terminal interface with streaming output and smooth animations   |
 | 🧠 **Agent Loop**          | Event-driven run lifecycle with session-scoped state management             |
+| 🪝 **React Hooks**         | `useAgent()` React hook for stable UI state binding and session control     |
+| 📡 **Event System**        | Session-scoped event bus: run-start, text-delta, tool-start/end, done, error|
+| 🧩 **AGUI Compatible**     | Modular UI components (ConversationFeed, ExpandedPanel) — swappable design  |
 | 💾 **Session Persistence** | Local storage with resumable sessions — never lose your work                |
 | 🔌 **Multi-Provider**      | 20+ providers via pi-ai: OpenAI, Anthropic, Google, Groq, Mistral, and more |
 | 🛠️ **Core Tools**          | Bash, FileRead, FileWrite, FileEdit — the essentials for coding             |
@@ -55,7 +58,7 @@ Kodo is a local-first coding agent that runs in your terminal, talks to LLMs, an
 ### Installation
 
 ```bash
-npm install -g kodo
+npm install -g @cjraft/kodo
 ```
 
 ### Configure Your Provider
@@ -64,10 +67,10 @@ Create a `.env` file (or use environment variables):
 
 ```bash
 # OpenAI or compatible endpoint
-MODEL_PROVIDER=openai
-MODEL_API_KEY=sk-...
-MODEL_BASE_URL=https://api.openai.com/v1
-MODEL_NAME=gpt-4.1-mini
+KODO_MODEL_PROVIDER=openai
+KODO_MODEL_API_KEY=sk-...
+KODO_MODEL_BASE_URL=https://api.openai.com/v1
+KODO_MODEL_NAME=gpt-4.1-mini
 ```
 
 > 💡 **Tip:** Copy `.env.example` as a starting point for more options.
@@ -95,31 +98,92 @@ Type your task and press Enter. Kodo plans, executes, and streams results back i
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         UI Layer                            │
-│              (Ink + React - Terminal Interface)             │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────┐
-│                       Agent Layer                           │
-│     (Session Lifecycle · Run Orchestration · Events)        │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-        ┌─────────────────┼─────────────────┐
-        │                 │                 │
-┌───────▼──────┐ ┌────────▼────────┐ ┌─────▼──────┐
-│   LLM Layer  │ │  Context Layer  │ │ Tool Layer │
-│(Providers ·  │ │ (Budget ·       │ │ (Bash ·    │
-│  Models)     │ │  Assembly)      │ │  File Ops) │
-└──────────────┘ └─────────────────┘ └────────────┘
-        │                 │                 │
-        └─────────────────┼─────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────┐
-│                       Store Layer                           │
-│          (Session Persistence · Artifacts)                  │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              UI Layer (Ink + React)                         │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                     AGUI Compatible Components                       │    │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐ │    │
+│  │  │ ConversationFeed│  │ExpandedContent  │  │  CommandComposer    │ │    │
+│  │  │   (Chat UI)     │  │    Panel        │  │  (Input/Commands)   │ │    │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────────┘ │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                    │                                        │
+│  ┌─────────────────────────────────▼─────────────────────────────────────┐  │
+│  │                     React Hooks (use-agent.ts)                         │  │
+│  │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐  │  │
+│  │   │  Session    │  │  Run Phase  │  │  Streaming  │  │   Resume   │  │  │
+│  │   │  Binding    │  │   State     │  │   Text      │  │  Session   │  │  │
+│  │   └─────────────┘  └─────────────┘  └─────────────┘  └────────────┘  │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────┬──────────────────────────────────────────┘
+                                   │
+┌──────────────────────────────────▼──────────────────────────────────────────┐
+│                               Agent Layer                                   │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                         Event System (event-bus.ts)                    │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐  │  │
+│  │  │  run-start  │  │  text-delta │  │ tool-start  │  │   tool-end   │  │  │
+│  │  │   status    │  │    error    │  │    done     │  │              │  │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  └──────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                        │
+│  ┌─────────────────────────────────▼─────────────────────────────────────┐  │
+│  │                    Session Lifecycle (session.ts)                      │  │
+│  │        Create · Load · Run Orchestration · State Management           │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                🚧 Agent Lifecycle Hooks [TODO]                         │  │
+│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  │  │
+│  │  │ onRunStart() │ │onToolStart() │ │ onToolEnd()  │ │ onRunEnd()   │  │  │
+│  │  │              │ │              │ │              │ │              │  │  │
+│  │  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘  │  │
+│  │         🔮 支持拦截、修改、插件扩展的中间件机制（计划实现）             │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────┬──────────────────────────────────────────┘
+                                   │
+        ┌──────────────────────────┼──────────────────────────┐
+        │                          │                          │
+┌───────▼────────┐    ┌────────────▼─────────────┐    ┌───────▼────────┐
+│   LLM Layer    │    │      Context Layer       │    │   Tool Layer   │
+│ ┌────────────┐ │    │  ┌─────────────────────┐ │    │ ┌────────────┐ │
+│ │  Providers │ │    │  │   Context Builder   │ │    │ │    Bash    │ │
+│ │  (pi-ai)   │ │    │  │  (UserView/APIView) │ │    │ ├────────────┤ │
+│ │ 20+ Models │ │    │  ├─────────────────────┤ │    │ │ FileRead   │ │
+│ ├────────────┤ │    │  │   Token Budget      │ │    │ ├────────────┤ │
+│ │   Retry    │ │    │  │  (Assembly/Enforce) │ │    │ │ FileWrite  │ │
+│ │   Policy   │ │    │  ├─────────────────────┤ │    │ ├────────────┤ │
+│ ├────────────┤ │    │  │  Compaction Strategy│ │    │ │ FileEdit   │ │
+│ │Normalized  │ │    │  │ (Summarize/Truncate)│ │    │ └────────────┘ │
+│ │   Types    │ │    │  └─────────────────────┘ │    └────────────────┘
+│ └────────────┘ │    └──────────────────────────┘             │
+└────────────────┘                                              │
+        │                                                       │
+        └───────────────────────────┬───────────────────────────┘
+                                    │
+┌───────────────────────────────────▼─────────────────────────────────────────┐
+│                                Store Layer                                  │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐  │
+│  │  Session Store      │  │  Artifact Store     │  │  Context Store      │  │
+│  │  (Metadata/State)   │  │  (Tool Results)     │  │  (Serialization)    │  │
+│  └─────────────────────┘  └─────────────────────┘  └─────────────────────┘  │
+│                                                                             │
+│  Storage: .kodo/sessions/<sessionId>/                                       │
+│           ├── session.json  (metadata)                                      │
+│           ├── transcript.jsonl (messages)                                   │
+│           └── artifacts/ (tool outputs)                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Key Design Principles
+
+| Principle | Description |
+|-----------|-------------|
+| **Layered Boundaries** | UI → Agent → LLM/Context/Tool/Store — explicit dependency direction |
+| **Event-Driven** | Agent events flow through EventBus; UI subscribes via hooks |
+| **Session-Scoped** | All events and state are tied to a session, enabling multi-session support |
+| **AGUI Compatible** | UI components are decoupled from agent implementation, swappable interface |
+| **Type Safety** | Domain types, provider IO types, and UI view models are strictly separated |
 
 ---
 
@@ -184,7 +248,7 @@ Kodo is built on **[pi-ai](https://www.npmjs.com/package/@mariozechner/pi-ai)**,
 | **Routers**          | `openrouter`, `vercel-ai-gateway`                                    |
 | **Other**            | `xai`, `huggingface`, `opencode`, `zai`                              |
 
-> 💡 **Using any provider:** Set `MODEL_PROVIDER=<provider-id>` and configure the corresponding `MODEL_API_KEY` and `MODEL_BASE_URL`.
+> 💡 **Using any provider:** Set `KODO_MODEL_PROVIDER=<provider-id>` and configure the corresponding `KODO_MODEL_API_KEY` and `KODO_MODEL_BASE_URL`.
 
 ---
 

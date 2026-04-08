@@ -85,7 +85,7 @@ describe("buildLlmConfig", () => {
           },
         }),
       ),
-    ).toThrow("MODEL_PROVIDER or --provider is required");
+    ).toThrow("KODO_MODEL_PROVIDER or --provider is required");
   });
 
   it("fails fast when multiple provider-specific configs are present", () => {

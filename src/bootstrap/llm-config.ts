@@ -55,15 +55,17 @@ const resolveProviderId = (options: BootstrapOptions) => {
 
   if (inferredProviderIds.length > 1) {
     throw new Error(
-      "Multiple LLM providers are configured. Set MODEL_PROVIDER or --provider explicitly.",
+      "Multiple LLM providers are configured. Set KODO_MODEL_PROVIDER or --provider explicitly.",
     );
   }
 
   if (hasGenericLlmOverrides(options)) {
-    throw new Error("MODEL_PROVIDER or --provider is required when using generic model options.");
+    throw new Error(
+      "KODO_MODEL_PROVIDER or --provider is required when using generic model options.",
+    );
   }
 
-  throw new Error("No LLM provider configured. Set MODEL_PROVIDER and MODEL_API_KEY.");
+  throw new Error("No LLM provider configured. Set KODO_MODEL_PROVIDER and KODO_MODEL_API_KEY.");
 };
 
 /**

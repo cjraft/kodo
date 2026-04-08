@@ -19,20 +19,20 @@ describe("resolveAppConfig", () => {
     await writeFile(
       path.join(dir, ".env"),
       [
-        "MODEL_PROVIDER=kimi",
-        "MODEL_API_KEY=sk-kimi-from-dotenv",
-        "MODEL_BASE_URL=https://api.kimi.com/coding/",
-        "MODEL_NAME=k2p5",
+        "KODO_MODEL_PROVIDER=kimi",
+        "KODO_MODEL_API_KEY=sk-kimi-from-dotenv",
+        "KODO_MODEL_BASE_URL=https://api.kimi.com/coding/",
+        "KODO_MODEL_NAME=k2p5",
         'KODO_THEME_ACCENT="#c9a7ff"',
       ].join("\n"),
       "utf8",
     );
 
     const config = resolveAppConfig(["--cwd", dir], {
-      MODEL_PROVIDER: "openai",
-      MODEL_API_KEY: "shell-key",
-      MODEL_BASE_URL: "https://api.openai.com/v1",
-      MODEL_NAME: "gpt-4.1-mini",
+      KODO_MODEL_PROVIDER: "openai",
+      KODO_MODEL_API_KEY: "shell-key",
+      KODO_MODEL_BASE_URL: "https://api.openai.com/v1",
+      KODO_MODEL_NAME: "gpt-4.1-mini",
     });
 
     expect(config.llm).toMatchObject({
